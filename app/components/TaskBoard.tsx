@@ -11,18 +11,16 @@ interface TaskBoardProps {
 export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('open');
 
-  const filteredIssues = issues.filter(issue => {
+  const filteredIssues = issues.filter((issue) => {
     if (filter === 'all') return true;
     return issue.state === filter;
   });
 
-  const openIssues = issues.filter(i => i.state === 'open');
-  const closedIssues = issues.filter(i => i.state === 'closed');
+  const openIssues = issues.filter((i) => i.state === 'open');
+  const closedIssues = issues.filter((i) => i.state === 'closed');
 
   // 计算进度
-  const progress = issues.length > 0 
-    ? Math.round((closedIssues.length / issues.length) * 100) 
-    : 0;
+  const progress = issues.length > 0 ? Math.round((closedIssues.length / issues.length) * 100) : 0;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
@@ -47,13 +45,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
 
         {/* 进度条 */}
         <div className="space-y-2">
-          <ProgressBar 
-            value={progress} 
-            size="sm" 
-            color="green"
-            showPercentage
-            animated
-          />
+          <ProgressBar value={progress} size="sm" color="green" showPercentage animated />
           <div className="flex items-center justify-between text-xs text-gray-500">
             <span>🟢 {openIssues.length} 进行中</span>
             <span>✅ {closedIssues.length} 已完成</span>
@@ -72,9 +64,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
             </p>
           </div>
         ) : (
-          filteredIssues.map(issue => (
-            <TaskCard key={issue.number} issue={issue} />
-          ))
+          filteredIssues.map((issue) => <TaskCard key={issue.number} issue={issue} />)
         )}
       </div>
 
@@ -99,12 +89,12 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
   const stateColors = {
     open: 'text-green-600 bg-green-50 border-green-200',
-    closed: 'text-gray-500 bg-gray-50 border-gray-200'
+    closed: 'text-gray-500 bg-gray-50 border-gray-200',
   };
 
   const stateLabels = {
     open: '🟢 进行中',
-    closed: '✅ 已完成'
+    closed: '✅ 已完成',
   };
 
   return (
@@ -112,7 +102,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
       <div className="flex items-start gap-3">
         {/* 状态图标 */}
         <div className="mt-1 flex-shrink-0">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${stateColors[issue.state]}`}>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${stateColors[issue.state]}`}
+          >
             {stateLabels[issue.state]}
           </span>
         </div>
@@ -142,7 +134,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
                   className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                   style={{
                     backgroundColor: `#${label.color}20`,
-                    color: `#${label.color}`
+                    color: `#${label.color}`,
                   }}
                 >
                   {label.name}
@@ -163,7 +155,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
                   alt={issue.assignee.login}
                   className="w-4 h-4 rounded-full"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
+                    (e.target as HTMLImageElement).src =
+                      'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
                   }}
                 />
                 <span>{issue.assignee.login}</span>

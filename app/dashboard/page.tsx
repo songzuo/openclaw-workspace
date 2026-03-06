@@ -2,7 +2,7 @@
 
 /**
  * AI 团队实时看板 Dashboard
- * 
+ *
  * 功能:
  * - 显示 11 位 AI 成员状态
  * - 任务进度展示 (GitHub Issues)
@@ -78,7 +78,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'working',
     provider: 'minimax',
     currentTask: '#42 分析市场趋势',
-    completedTasks: 156
+    completedTasks: 156,
   },
   {
     id: 'consultant',
@@ -89,7 +89,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'working',
     provider: 'minimax',
     currentTask: '#38 竞品调研报告',
-    completedTasks: 203
+    completedTasks: 203,
   },
   {
     id: 'architect',
@@ -100,7 +100,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'busy',
     provider: 'self-claude',
     currentTask: '#45 系统架构评审',
-    completedTasks: 178
+    completedTasks: 178,
   },
   {
     id: 'executor',
@@ -111,7 +111,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'working',
     provider: 'volcengine',
     currentTask: '#51 实现看板功能',
-    completedTasks: 312
+    completedTasks: 312,
   },
   {
     id: 'sysadmin',
@@ -122,7 +122,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'idle',
     provider: 'bailian',
     currentTask: undefined,
-    completedTasks: 145
+    completedTasks: 145,
   },
   {
     id: 'tester',
@@ -133,7 +133,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'working',
     provider: 'minimax',
     currentTask: '#49 单元测试编写',
-    completedTasks: 267
+    completedTasks: 267,
   },
   {
     id: 'designer',
@@ -144,7 +144,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'busy',
     provider: 'self-claude',
     currentTask: '#47 界面优化',
-    completedTasks: 189
+    completedTasks: 189,
   },
   {
     id: 'marketing',
@@ -155,7 +155,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'idle',
     provider: 'volcengine',
     currentTask: undefined,
-    completedTasks: 134
+    completedTasks: 134,
   },
   {
     id: 'sales',
@@ -166,7 +166,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'offline',
     provider: 'bailian',
     currentTask: undefined,
-    completedTasks: 98
+    completedTasks: 98,
   },
   {
     id: 'finance',
@@ -177,7 +177,7 @@ const AI_MEMBERS: AIMember[] = [
     status: 'idle',
     provider: 'minimax',
     currentTask: undefined,
-    completedTasks: 76
+    completedTasks: 76,
   },
   {
     id: 'media',
@@ -188,8 +188,8 @@ const AI_MEMBERS: AIMember[] = [
     status: 'working',
     provider: 'self-claude',
     currentTask: '#44 宣传文案撰写',
-    completedTasks: 112
-  }
+    completedTasks: 112,
+  },
 ];
 
 // ============================================================================
@@ -206,15 +206,8 @@ const REFRESH_INTERVAL = 30000; // 30 秒
 // ============================================================================
 
 export default function DashboardPage() {
-  const {
-    issues,
-    commits,
-    activities,
-    isLoading,
-    error,
-    lastUpdated,
-    refreshData
-  } = useDashboardData(GITHUB_OWNER, GITHUB_REPO, GITHUB_TOKEN);
+  const { issues, commits, activities, isLoading, error, lastUpdated, refreshData } =
+    useDashboardData(GITHUB_OWNER, GITHUB_REPO, GITHUB_TOKEN);
 
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -232,12 +225,12 @@ export default function DashboardPage() {
   // 统计信息
   const stats = {
     totalMembers: AI_MEMBERS.length,
-    working: AI_MEMBERS.filter(m => m.status === 'working').length,
-    busy: AI_MEMBERS.filter(m => m.status === 'busy').length,
-    idle: AI_MEMBERS.filter(m => m.status === 'idle').length,
-    offline: AI_MEMBERS.filter(m => m.status === 'offline').length,
-    openIssues: issues.filter(i => i.state === 'open').length,
-    closedIssues: issues.filter(i => i.state === 'closed').length
+    working: AI_MEMBERS.filter((m) => m.status === 'working').length,
+    busy: AI_MEMBERS.filter((m) => m.status === 'busy').length,
+    idle: AI_MEMBERS.filter((m) => m.status === 'idle').length,
+    offline: AI_MEMBERS.filter((m) => m.status === 'offline').length,
+    openIssues: issues.filter((i) => i.state === 'open').length,
+    closedIssues: issues.filter((i) => i.state === 'closed').length,
   };
 
   if (isLoading && !issues.length) {
@@ -252,9 +245,7 @@ export default function DashboardPage() {
                   <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     🤖 AI 团队实时看板
                   </h1>
-                  <p className="text-sm text-gray-500 mt-1">
-                    加载中...
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">加载中...</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -289,11 +280,12 @@ export default function DashboardPage() {
                   🤖 AI 团队实时看板
                 </h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  {stats.totalMembers} 位成员 · {stats.openIssues} 个进行中任务 · 最后更新：{lastUpdated?.toLocaleTimeString() || '-'}
+                  {stats.totalMembers} 位成员 · {stats.openIssues} 个进行中任务 · 最后更新：
+                  {lastUpdated?.toLocaleTimeString() || '-'}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {/* 自动刷新开关 */}
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -305,7 +297,7 @@ export default function DashboardPage() {
                 />
                 自动刷新
               </label>
-              
+
               {/* 手动刷新按钮 */}
               <button
                 onClick={refreshData}
@@ -379,7 +371,7 @@ function StatCard({ label, value, color }: StatCardProps) {
     gray: 'bg-gray-50 text-gray-700 border-gray-200',
     slate: 'bg-slate-50 text-slate-700 border-slate-200',
     indigo: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   };
 
   return (
@@ -399,10 +391,10 @@ interface MemberStatusProps {
 }
 
 function MemberStatus({ members }: MemberStatusProps) {
-  const workingMembers = members.filter(m => m.status === 'working');
-  const busyMembers = members.filter(m => m.status === 'busy');
-  const idleMembers = members.filter(m => m.status === 'idle');
-  const offlineMembers = members.filter(m => m.status === 'offline');
+  const workingMembers = members.filter((m) => m.status === 'working');
+  const busyMembers = members.filter((m) => m.status === 'busy');
+  const idleMembers = members.filter((m) => m.status === 'idle');
+  const offlineMembers = members.filter((m) => m.status === 'offline');
 
   return (
     <div className="space-y-4">
@@ -414,13 +406,11 @@ function MemberStatus({ members }: MemberStatusProps) {
           </h3>
         </div>
         <div className="divide-y max-h-96 overflow-y-auto">
-          {workingMembers.map(member => (
+          {workingMembers.map((member) => (
             <MemberCard key={member.id} member={member} compact />
           ))}
           {workingMembers.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              暂无成员工作中
-            </div>
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无成员工作中</div>
           )}
         </div>
       </div>
@@ -433,13 +423,11 @@ function MemberStatus({ members }: MemberStatusProps) {
           </h3>
         </div>
         <div className="divide-y max-h-96 overflow-y-auto">
-          {busyMembers.map(member => (
+          {busyMembers.map((member) => (
             <MemberCard key={member.id} member={member} compact />
           ))}
           {busyMembers.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              暂无成员忙碌中
-            </div>
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无成员忙碌中</div>
           )}
         </div>
       </div>
@@ -452,13 +440,11 @@ function MemberStatus({ members }: MemberStatusProps) {
           </h3>
         </div>
         <div className="divide-y max-h-96 overflow-y-auto">
-          {idleMembers.map(member => (
+          {idleMembers.map((member) => (
             <MemberCard key={member.id} member={member} compact />
           ))}
           {idleMembers.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              暂无成员空闲
-            </div>
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无成员空闲</div>
           )}
         </div>
       </div>
@@ -471,13 +457,11 @@ function MemberStatus({ members }: MemberStatusProps) {
           </h3>
         </div>
         <div className="divide-y max-h-96 overflow-y-auto">
-          {offlineMembers.map(member => (
+          {offlineMembers.map((member) => (
             <MemberCard key={member.id} member={member} compact />
           ))}
           {offlineMembers.length === 0 && (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">
-              无离线成员
-            </div>
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">无离线成员</div>
           )}
         </div>
       </div>

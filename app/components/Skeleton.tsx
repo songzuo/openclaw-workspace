@@ -18,25 +18,25 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   variant = 'rectangular',
   width,
   height,
-  animation = 'pulse'
+  animation = 'pulse',
 }) => {
   const baseClasses = 'bg-gray-200';
-  
+
   const variantClasses = {
     text: 'rounded',
     circular: 'rounded-full',
-    rectangular: 'rounded-lg'
+    rectangular: 'rounded-lg',
   };
-  
+
   const animationClasses = {
     pulse: 'animate-pulse',
     wave: 'skeleton-wave',
-    none: ''
+    none: '',
   };
 
   const style: React.CSSProperties = {
     width: width || '100%',
-    height: height || (variant === 'text' ? '1em' : variant === 'circular' ? '40px' : '100px')
+    height: height || (variant === 'text' ? '1em' : variant === 'circular' ? '40px' : '100px'),
   };
 
   return (
@@ -75,12 +75,7 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({ lines = 3 }) => {
         </div>
       </div>
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton 
-          key={i} 
-          variant="text" 
-          width={`${100 - i * 15}%`} 
-          height={14} 
-        />
+        <Skeleton key={i} variant="text" width={`${100 - i * 15}%`} height={14} />
       ))}
     </div>
   );
@@ -91,31 +86,20 @@ export const SkeletonCard: React.FC<SkeletonCardProps> = ({ lines = 3 }) => {
  */
 export const SkeletonAvatar: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'md' }) => {
   const sizes = { sm: 32, md: 48, lg: 64 };
-  return (
-    <Skeleton 
-      variant="circular" 
-      width={sizes[size]} 
-      height={sizes[size]} 
-    />
-  );
+  return <Skeleton variant="circular" width={sizes[size]} height={sizes[size]} />;
 };
 
 /**
  * 文本行骨架屏
  */
-export const SkeletonText: React.FC<{ lines?: number; gap?: number }> = ({ 
-  lines = 3, 
-  gap = 8 
+export const SkeletonText: React.FC<{ lines?: number; gap?: number }> = ({
+  lines = 3,
+  gap = 8,
 }) => {
   return (
     <div className="space-y-2">
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          variant="text"
-          width={i === lines - 1 ? '70%' : '100%'}
-          height={14}
-        />
+        <Skeleton key={i} variant="text" width={i === lines - 1 ? '70%' : '100%'} height={14} />
       ))}
     </div>
   );
@@ -124,9 +108,9 @@ export const SkeletonText: React.FC<{ lines?: number; gap?: number }> = ({
 /**
  * 表格骨架屏
  */
-export const SkeletonTable: React.FC<{ rows?: number; columns?: number }> = ({ 
-  rows = 5, 
-  columns = 4 
+export const SkeletonTable: React.FC<{ rows?: number; columns?: number }> = ({
+  rows = 5,
+  columns = 4,
 }) => {
   return (
     <div className="space-y-3">
@@ -140,12 +124,7 @@ export const SkeletonTable: React.FC<{ rows?: number; columns?: number }> = ({
       {Array.from({ length: rows }).map((_, rowIndex) => (
         <div key={rowIndex} className="flex gap-4">
           {Array.from({ length: columns }).map((_, colIndex) => (
-            <Skeleton 
-              key={colIndex} 
-              variant="text" 
-              width={`${100 / columns}%`} 
-              height={40} 
-            />
+            <Skeleton key={colIndex} variant="text" width={`${100 / columns}%`} height={40} />
           ))}
         </div>
       ))}

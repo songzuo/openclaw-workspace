@@ -26,14 +26,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   showPercentage = false,
   animated = true,
   striped = false,
-  className = ''
+  className = '',
 }) => {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
   const sizeClasses = {
     sm: 'h-1.5',
     md: 'h-2.5',
-    lg: 'h-4'
+    lg: 'h-4',
   };
 
   const colorClasses = {
@@ -43,7 +43,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     red: 'bg-red-600',
     indigo: 'bg-indigo-600',
     purple: 'bg-purple-600',
-    gradient: 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600'
+    gradient: 'bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600',
   };
 
   const labelColorClasses = {
@@ -53,16 +53,14 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     red: 'text-red-600',
     indigo: 'text-indigo-600',
     purple: 'text-purple-600',
-    gradient: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-pink-600'
+    gradient: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-pink-600',
   };
 
   return (
     <div className={`w-full ${className}`}>
       {(showLabel || showPercentage) && (
         <div className="flex justify-between items-center mb-1">
-          {showLabel && (
-            <span className="text-sm text-gray-600">进度</span>
-          )}
+          {showLabel && <span className="text-sm text-gray-600">进度</span>}
           {showPercentage && (
             <span className={`text-sm font-medium ${labelColorClasses[color]}`}>
               {Math.round(percentage)}%
@@ -115,12 +113,12 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
   strokeWidth = 8,
   color = 'blue',
   showValue = true,
-  label
+  label,
 }) => {
   const [animatedValue, setAnimatedValue] = useState(0);
-  
+
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
-  
+
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const offset = circumference - (animatedValue / 100) * circumference;
@@ -131,7 +129,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
     yellow: '#eab308',
     red: '#dc2626',
     indigo: '#4f46e5',
-    purple: '#9333ea'
+    purple: '#9333ea',
   };
 
   // 动画效果
@@ -173,9 +171,7 @@ export const CircularProgress: React.FC<CircularProgressProps> = ({
           <span className={`text-lg font-bold text-${color}-600`}>
             {Math.round(animatedValue)}%
           </span>
-          {label && (
-            <span className="text-xs text-gray-500">{label}</span>
-          )}
+          {label && <span className="text-xs text-gray-500">{label}</span>}
         </div>
       )}
     </div>
@@ -198,7 +194,7 @@ interface StepProgressProps {
 export const StepProgress: React.FC<StepProgressProps> = ({
   steps,
   currentStep,
-  showLabels = true
+  showLabels = true,
 }) => {
   return (
     <div className="w-full">
@@ -263,12 +259,12 @@ interface LoadingProgressProps {
  */
 export const LoadingProgress: React.FC<LoadingProgressProps> = ({
   message = '加载中...',
-  size = 'md'
+  size = 'md',
 }) => {
   const sizeClasses = {
     sm: 'h-1',
     md: 'h-2',
-    lg: 'h-3'
+    lg: 'h-3',
   };
 
   return (

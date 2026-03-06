@@ -2,7 +2,14 @@
 
 import React from 'react';
 import { LoadingSpinner } from './LoadingSpinner';
-import { Skeleton, SkeletonCard, SkeletonAvatar, SkeletonText, SkeletonStatCard, SkeletonTable } from './Skeleton';
+import {
+  Skeleton,
+  SkeletonCard,
+  SkeletonAvatar,
+  SkeletonText,
+  SkeletonStatCard,
+  SkeletonTable,
+} from './Skeleton';
 import { ProgressBar, CircularProgress, StepProgress, LoadingProgress } from './ProgressBar';
 
 export {
@@ -16,7 +23,7 @@ export {
   ProgressBar,
   CircularProgress,
   StepProgress,
-  LoadingProgress
+  LoadingProgress,
 };
 
 // ============================================================================
@@ -31,9 +38,9 @@ interface LoadingPageProps {
 /**
  * 通用加载页面 - 用于路由切换时的加载
  */
-export const LoadingPage: React.FC<LoadingPageProps> = ({ 
+export const LoadingPage: React.FC<LoadingPageProps> = ({
   message = '加载中...',
-  showSpinner = true
+  showSpinner = true,
 }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -44,9 +51,7 @@ export const LoadingPage: React.FC<LoadingPageProps> = ({
             <p className="mt-4 text-gray-600 font-medium">{message}</p>
           </>
         )}
-        {!showSpinner && (
-          <LoadingProgress message={message} size="lg" />
-        )}
+        {!showSpinner && <LoadingProgress message={message} size="lg" />}
       </div>
     </div>
   );
@@ -64,10 +69,7 @@ interface LoadingContentProps {
 /**
  * 骨架屏内容 - 用于页面内容区域的占位加载
  */
-export const LoadingContent: React.FC<LoadingContentProps> = ({ 
-  type = 'card',
-  count = 3
-}) => {
+export const LoadingContent: React.FC<LoadingContentProps> = ({ type = 'card', count = 3 }) => {
   if (type === 'card') {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -131,7 +133,7 @@ interface LoadingWithProgressProps {
 export const LoadingWithProgress: React.FC<LoadingWithProgressProps> = ({
   progress,
   message = '处理中',
-  total = 100
+  total = 100,
 }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -140,17 +142,15 @@ export const LoadingWithProgress: React.FC<LoadingWithProgressProps> = ({
           <div className="text-4xl mb-3">⚡</div>
           <h3 className="text-lg font-semibold text-gray-900">{message}</h3>
         </div>
-        <ProgressBar 
-          value={progress} 
+        <ProgressBar
+          value={progress}
           max={total}
           color="gradient"
           size="lg"
           showPercentage
           animated
         />
-        <p className="mt-4 text-center text-sm text-gray-500">
-          {progress}% - 请稍候...
-        </p>
+        <p className="mt-4 text-center text-sm text-gray-500">{progress}% - 请稍候...</p>
       </div>
     </div>
   );

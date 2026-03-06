@@ -19,12 +19,9 @@ export default function NotFound() {
         </div>
 
         {/* 错误消息 */}
-        <h2 className="text-2xl md:text-4xl font-semibold text-white mb-4">
-          页面未找到 🚀
-        </h2>
+        <h2 className="text-2xl md:text-4xl font-semibold text-white mb-4">页面未找到 🚀</h2>
         <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
-          抱歉，您访问的页面不存在或已被移除。
-          让我们带您回到首页吧！
+          抱歉，您访问的页面不存在或已被移除。 让我们带您回到首页吧！
         </p>
 
         {/* 动画返回按钮 */}
@@ -55,7 +52,7 @@ export default function NotFound() {
               className="w-2 h-2 bg-white/50 rounded-full animate-bounce"
               style={{
                 animationDelay: `${i * 0.15}s`,
-                animationDuration: '1.5s'
+                animationDuration: '1.5s',
               }}
             />
           ))}

@@ -15,7 +15,7 @@ interface UseDashboardDataReturn {
 
 /**
  * Dashboard 数据 Hook
- * 
+ *
  * 从 GitHub API 获取 Issues 和 Commits 数据
  * 支持自动刷新和错误处理
  */
@@ -33,8 +33,8 @@ export function useDashboardData(
 
   // 构建 API 请求头
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
-    'Content-Type': 'application/json'
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
   };
 
   if (token) {
@@ -104,7 +104,7 @@ export function useDashboardData(
     const activityItems: ActivityItem[] = [];
 
     // 添加 Commits 作为活动
-    commitsData.forEach(commit => {
+    commitsData.forEach((commit) => {
       activityItems.push({
         id: `commit-${commit.sha}`,
         type: 'commit',
@@ -112,12 +112,12 @@ export function useDashboardData(
         author: commit.commit.author.name || '未知',
         avatar: commit.author?.avatar_url,
         timestamp: commit.commit.author.date,
-        url: commit.html_url
+        url: commit.html_url,
       });
     });
 
     // 添加 Issues 作为活动
-    issuesData.forEach(issue => {
+    issuesData.forEach((issue) => {
       activityItems.push({
         id: `issue-${issue.number}`,
         type: 'issue',
@@ -125,7 +125,7 @@ export function useDashboardData(
         author: issue.assignee?.login || '未分配',
         avatar: issue.assignee?.avatar_url,
         timestamp: issue.updated_at,
-        url: issue.html_url
+        url: issue.html_url,
       });
     });
 
@@ -147,16 +147,16 @@ export function useDashboardData(
       // 并行获取 Issues 和 Commits
       let issuesData: GitHubIssue[] = [];
       let commitsData: GitHubCommit[] = [];
-      
+
       try {
-        issuesData = await fetchIssues() ?? [];
+        issuesData = (await fetchIssues()) ?? [];
       } catch (err) {
         console.warn('Issues fetch failed:', err);
         issuesData = [];
       }
-      
+
       try {
-        commitsData = await fetchCommits() ?? [];
+        commitsData = (await fetchCommits()) ?? [];
       } catch (err) {
         console.warn('Commits fetch failed:', err);
         commitsData = [];
@@ -187,6 +187,6 @@ export function useDashboardData(
     isLoading,
     error,
     lastUpdated,
-    refreshData
+    refreshData,
   };
 }

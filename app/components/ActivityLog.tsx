@@ -11,19 +11,19 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
   const typeIcons = {
     commit: '💻',
     issue: '📋',
-    comment: '💬'
+    comment: '💬',
   };
 
   const typeColors = {
     commit: 'bg-blue-50 text-blue-700 border-blue-200',
     issue: 'bg-green-50 text-green-700 border-green-200',
-    comment: 'bg-purple-50 text-purple-700 border-purple-200'
+    comment: 'bg-purple-50 text-purple-700 border-purple-200',
   };
 
   const typeLabels = {
     commit: '提交',
     issue: '任务',
-    comment: '评论'
+    comment: '评论',
   };
 
   return (
@@ -33,9 +33,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <span>⚡</span> 实时活动日志
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          最近 {activities.length} 条活动
-        </p>
+        <p className="text-sm text-gray-500 mt-1">最近 {activities.length} 条活动</p>
       </div>
 
       {/* 活动列表 */}
@@ -92,17 +90,20 @@ function ActivityItemCard({ activity, icon, colorClass, label }: ActivityItemCar
         {/* 内容 */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colorClass}`}>
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colorClass}`}
+            >
               {label}
             </span>
-            <span className="text-xs text-gray-400" title={new Date(activity.timestamp).toLocaleString()}>
+            <span
+              className="text-xs text-gray-400"
+              title={new Date(activity.timestamp).toLocaleString()}
+            >
               {formatTimeAgo(activity.timestamp)}
             </span>
           </div>
 
-          <p className="text-sm text-gray-900 truncate mb-1">
-            {activity.title}
-          </p>
+          <p className="text-sm text-gray-900 truncate mb-1">{activity.title}</p>
 
           <div className="flex items-center gap-2 text-xs text-gray-500">
             {activity.avatar && (
@@ -111,7 +112,8 @@ function ActivityItemCard({ activity, icon, colorClass, label }: ActivityItemCar
                 alt={activity.author}
                 className="w-4 h-4 rounded-full"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + activity.author;
+                  (e.target as HTMLImageElement).src =
+                    'https://api.dicebear.com/7.x/bottts/svg?seed=' + activity.author;
                 }}
               />
             )}

@@ -6,12 +6,8 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 py-16">
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            🤖 AI 团队管理系统
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            实时监控 AI 团队成员状态、任务进度和活动日志
-          </p>
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">🤖 AI 团队管理系统</h1>
+          <p className="text-xl text-gray-600 mb-8">实时监控 AI 团队成员状态、任务进度和活动日志</p>
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 text-white text-lg font-medium rounded-xl hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
@@ -42,9 +38,7 @@ export default function Home() {
 
         {/* Stats Section */}
         <div className="mt-16 bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-            系统特性
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">系统特性</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <StatItem label="自动刷新" value="30 秒" />
             <StatItem label="GitHub API" value="实时" />
@@ -55,9 +49,7 @@ export default function Home() {
 
         {/* Quick Links */}
         <div className="mt-16 text-center">
-          <h3 className="text-lg font-semibold text-gray-700 mb-4">
-            快速访问
-          </h3>
+          <h3 className="text-lg font-semibold text-gray-700 mb-4">快速访问</h3>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/dashboard"
@@ -84,7 +76,15 @@ export default function Home() {
   );
 }
 
-function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+}) {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
       <div className="text-4xl mb-4">{icon}</div>

@@ -11,7 +11,8 @@ export const metadata: Metadata = {
     default: 'AI 团队实时看板 - 宋琢环球旅行',
     template: '%s | AI 团队实时看板',
   },
-  description: '实时展示 AI 团队成员状态、任务进度和活动日志。由宋琢环球旅行团队管理，包含 11 个专业 AI 代理协同工作。',
+  description:
+    '实时展示 AI 团队成员状态、任务进度和活动日志。由宋琢环球旅行团队管理，包含 11 个专业 AI 代理协同工作。',
   keywords: ['AI团队看板', '任务管理', '智能体', 'AI代理', '团队协作', '宋琢环球旅行'],
   authors: [{ name: '宋琢环球旅行', url: 'https://7zi.com' }],
   creator: '宋琢环球旅行',
@@ -79,12 +80,7 @@ export default function RootLayout({
       price: '0',
       priceCurrency: 'CNY',
     },
-    featureList: [
-      '实时成员状态展示',
-      '任务进度追踪',
-      '活动日志记录',
-      '11个专业AI代理协同',
-    ],
+    featureList: ['实时成员状态展示', '任务进度追踪', '活动日志记录', '11个专业AI代理协同'],
   };
 
   return (
