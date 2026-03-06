@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import '../globals.css';
 import { Navigation } from '../components/Navigation';
@@ -22,6 +22,15 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
+  // 可访问性元数据
+  category: 'business',
+  classification: 'AI Team Management',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'AI 团队看板',
+  },
+  // 打开 Graph
   openGraph: {
     type: 'website',
     locale: 'zh_CN',
@@ -38,12 +47,14 @@ export const metadata: Metadata = {
       },
     ],
   },
+  // Twitter
   twitter: {
     card: 'summary_large_image',
     title: 'AI 团队实时看板 - 宋琢环球旅行',
     description: '实时展示 AI 团队成员状态、任务进度和活动日志',
     images: ['/og-image.png'],
   },
+  // 搜索引擎
   robots: {
     index: true,
     follow: true,
@@ -55,6 +66,15 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1a1a' },
+  ],
 };
 
 export default function RootLayout({
@@ -92,8 +112,24 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+        {/* 跳过导航链接 - 屏幕阅读器专用 */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:outline-none focus:ring-4 focus:ring-blue-300"
+        >
+          跳到主要内容
+        </a>
+        
         <Navigation />
-        {children}
+        
+        <main id="main-content" tabIndex={-1}>
+          {children}
+        </main>
+        
+        {/* 页脚信息 */}
+        <footer className="sr-only" aria-label="网站信息">
+          AI 团队实时看板 - 由宋琢环球旅行团队管理
+        </footer>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useId } from 'react';
 import { GitHubIssue } from '../dashboard/page';
 import { ProgressBar } from './ProgressBar';
 
@@ -10,69 +10,100 @@ interface TaskBoardProps {
 
 export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
   const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('open');
+  const filterRef = useRef<HTMLSelectElement>(null);
+  const filterId = useId();
 
-  const filteredIssues = issues.filter((issue) => {
+  const filteredIssues = issues.filter(issue => {
     if (filter === 'all') return true;
     return issue.state === filter;
   });
 
-  const openIssues = issues.filter((i) => i.state === 'open');
-  const closedIssues = issues.filter((i) => i.state === 'closed');
+  const openIssues = issues.filter(i => i.state === 'open');
+  const closedIssues = issues.filter(i => i.state === 'closed');
 
   // 计算进度
-  const progress = issues.length > 0 ? Math.round((closedIssues.length / issues.length) * 100) : 0;
+  const progress = issues.length > 0 
+    ? Math.round((closedIssues.length / issues.length) * 100) 
+    : 0;
+
+  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setFilter(e.target.value as 'all' | 'open' | 'closed');
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
       {/* 看板头部 */}
-      <div className="px-6 py-4 border-b bg-gray-50">
+      <header className="px-6 py-4 border-b bg-gray-50">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <span>📋</span> GitHub 任务
+            <span aria-hidden="true">📋</span> GitHub 任务
           </h2>
           <div className="flex items-center gap-2">
+            <label htmlFor={filterId} className="sr-only">筛选任务状态</label>
             <select
+              ref={filterRef}
+              id={filterId}
               value={filter}
-              onChange={(e) => setFilter(e.target.value as any)}
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+              onChange={handleFilterChange}
+              className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 bg-white px-3 py-2"
+              aria-describedby="filter-description"
             >
               <option value="open">进行中</option>
               <option value="closed">已完成</option>
               <option value="all">全部</option>
             </select>
+            <span id="filter-description" className="sr-only">
+              当前筛选：{filter === 'all' ? '全部' : filter === 'open' ? '进行中' : '已完成'}
+            </span>
           </div>
         </div>
 
         {/* 进度条 */}
-        <div className="space-y-2">
-          <ProgressBar value={progress} size="sm" color="green" showPercentage animated />
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>🟢 {openIssues.length} 进行中</span>
-            <span>✅ {closedIssues.length} 已完成</span>
+        <div className="space-y-2" role="group" aria-label="任务进度">
+          <ProgressBar 
+            value={progress} 
+            size="sm" 
+            color="green"
+            showPercentage
+            animated
+          />
+          <div className="flex items-center justify-between text-xs text-gray-600">
+            <span aria-label={`${openIssues.length} 个进行中的任务`}>
+              <span aria-hidden="true">🟢</span> {openIssues.length} 进行中
+            </span>
+            <span aria-label={`${closedIssues.length} 个已完成的任务`}>
+              <span aria-hidden="true">✅</span> {closedIssues.length} 已完成
+            </span>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* 任务列表 */}
-      <div className="divide-y max-h-[600px] overflow-y-auto">
+      <div 
+        className="divide-y max-h-[600px] overflow-y-auto"
+        role="list"
+        aria-label="GitHub 任务列表"
+      >
         {filteredIssues.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500">
-            <p className="text-lg mb-2">📭</p>
+          <div className="px-6 py-12 text-center text-gray-500" role="status">
+            <p className="text-lg mb-2" aria-hidden="true">📭</p>
             <p>暂无任务</p>
             <p className="text-sm mt-1">
               {filter === 'open' ? '所有任务都已完成！' : '还没有 GitHub Issues'}
             </p>
           </div>
         ) : (
-          filteredIssues.map((issue) => <TaskCard key={issue.number} issue={issue} />)
+          filteredIssues.map(issue => (
+            <TaskCard key={issue.number} issue={issue} />
+          ))
         )}
       </div>
 
       {/* 底部统计 */}
       {filteredIssues.length > 0 && (
-        <div className="px-6 py-3 border-t bg-gray-50 text-xs text-gray-500">
+        <footer className="px-6 py-3 border-t bg-gray-50 text-xs text-gray-600">
           显示 {filteredIssues.length} / {issues.length} 个任务
-        </div>
+        </footer>
       )}
     </div>
   );
@@ -89,22 +120,33 @@ interface TaskCardProps {
 export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
   const stateColors = {
     open: 'text-green-600 bg-green-50 border-green-200',
-    closed: 'text-gray-500 bg-gray-50 border-gray-200',
+    closed: 'text-gray-500 bg-gray-50 border-gray-200'
   };
 
   const stateLabels = {
-    open: '🟢 进行中',
-    closed: '✅ 已完成',
+    open: '进行中',
+    closed: '已完成'
+  };
+
+  const stateIcons = {
+    open: '🟢',
+    closed: '✅'
   };
 
   return (
-    <div className="px-6 py-4 hover:bg-gray-50 transition-colors group">
+    <article 
+      className="px-6 py-4 hover:bg-gray-50 transition-colors group focus-within:bg-gray-50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500"
+      role="listitem"
+      aria-labelledby={`issue-${issue.number}-title`}
+    >
       <div className="flex items-start gap-3">
         {/* 状态图标 */}
         <div className="mt-1 flex-shrink-0">
-          <span
+          <span 
             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${stateColors[issue.state]}`}
+            aria-label={`状态：${stateLabels[issue.state]}`}
           >
+            <span aria-hidden="true">{stateIcons[issue.state]}</span>
             {stateLabels[issue.state]}
           </span>
         </div>
@@ -116,56 +158,65 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
               href={issue.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline"
+              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+              aria-label={`issue #${issue.number}`}
             >
               #{issue.number}
             </a>
-            <h3 className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+            <h3 
+              id={`issue-${issue.number}-title`}
+              className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors"
+            >
               {issue.title}
             </h3>
           </div>
 
           {/* 标签 */}
           {issue.labels.length > 0 && (
-            <div className="flex items-center gap-1 mb-2 flex-wrap">
+            <div className="flex items-center gap-1 mb-2 flex-wrap" role="group" aria-label="标签">
               {issue.labels.slice(0, 5).map((label, idx) => (
                 <span
                   key={idx}
                   className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                   style={{
                     backgroundColor: `#${label.color}20`,
-                    color: `#${label.color}`,
+                    color: `#${label.color}`
                   }}
+                  aria-label={`标签：${label.name}`}
                 >
                   {label.name}
                 </span>
               ))}
               {issue.labels.length > 5 && (
-                <span className="text-xs text-gray-400">+{issue.labels.length - 5}</span>
+                <span className="text-xs text-gray-500" aria-label={`还有 ${issue.labels.length - 5} 个标签`}>
+                  +{issue.labels.length - 5}
+                </span>
               )}
             </div>
           )}
 
           {/* 元信息 */}
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-3 text-xs text-gray-600" role="group" aria-label="任务信息">
             {issue.assignee && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" aria-label={`指派给：${issue.assignee.login}`}>
                 <img
                   src={issue.assignee.avatar_url}
-                  alt={issue.assignee.login}
+                  alt=""
                   className="w-4 h-4 rounded-full"
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src =
-                      'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
+                    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
                   }}
                 />
                 <span>{issue.assignee.login}</span>
               </div>
             )}
-            <span>·</span>
-            <span title={new Date(issue.updated_at).toLocaleString()}>
+            <span aria-hidden="true">·</span>
+            <time 
+              dateTime={issue.updated_at}
+              title={new Date(issue.updated_at).toLocaleString()}
+            >
               更新于 {formatTimeAgo(issue.updated_at)}
-            </span>
+            </time>
           </div>
         </div>
 
@@ -175,13 +226,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
             href={issue.html_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="text-sm text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+            aria-label={`在新窗口中查看任务 #${issue.number}`}
           >
             查看 →
           </a>
         </div>
       </div>
-    </div>
+    </article>
   );
 };
 

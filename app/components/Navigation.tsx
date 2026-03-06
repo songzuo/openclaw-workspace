@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -40,9 +40,6 @@ const NAV_ITEMS: NavItem[] = [
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const firstFocusableRef = useRef<HTMLAnchorElement>(null);
 
   // 键盘导航处理
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
