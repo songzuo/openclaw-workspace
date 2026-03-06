@@ -1,8 +1,9 @@
 import React from 'react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { Navigation } from '../components/Navigation';
 import * as nextNavigation from 'next/navigation';
+import { ThemeProvider } from '../components/ThemeProvider';
 
 // Mock Next.js usePathname
 vi.mock('next/navigation', () => ({
@@ -10,6 +11,60 @@ vi.mock('next/navigation', () => ({
 }));
 
 const mockedUsePathname = nextNavigation.usePathname as ReturnType<typeof vi.fn>;
+
+// Mock matchMedia for ThemeProvider
+const matchMediaListeners: Array<(e: MediaQueryListEvent) => void> = [];
+beforeEach(() => {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: (_event: string, listener: (e: MediaQueryListEvent) => void) => {
+      matchMediaListeners.push(listener);
+    },
+    removeEventListener: (_event: string, listener: (e: MediaQueryListEvent) => void) => {
+      const idx = matchMediaListeners.indexOf(listener);
+      if (idx > -1) matchMediaListeners.splice(idx, 1);
+    },
+    dispatchEvent: () => false,
+  }));
+
+  // Mock document.documentElement.classList
+  const classListMock = {
+    classes: new Set<string>(),
+    add: vi.fn((cls: string) => classListMock.classes.add(cls)),
+    remove: vi.fn((cls: string) => classListMock.classes.delete(cls)),
+    contains: vi.fn((cls: string) => classListMock.classes.has(cls)),
+  };
+
+  Object.defineProperty(document, 'documentElement', {
+    value: {
+      classList: classListMock,
+      style: { colorScheme: '' },
+    },
+    writable: true,
+    configurable: true,
+  });
+
+  // Mock localStorage
+  vi.stubGlobal('localStorage', {
+    getItem: vi.fn(() => null),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+    clear: vi.fn(),
+  });
+});
+
+// Helper to render with ThemeProvider
+const renderWithProviders = (ui: React.ReactElement) => {
+  return render(
+    <ThemeProvider>
+      {ui}
+    </ThemeProvider>
+  );
+};
 
 describe('Navigation', () => {
   beforeEach(() => {
@@ -21,18 +76,18 @@ describe('Navigation', () => {
   });
 
   it('renders navigation component', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     expect(screen.getByRole('navigation')).toBeDefined();
   });
 
   it('has correct aria-label', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const nav = screen.getByRole('navigation');
     expect(nav.getAttribute('aria-label')).toBe('主导航');
   });
 
   it('renders all navigation items', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     // 使用 getAllByText 并检查长度
     expect(screen.getAllByText('🏠').length).toBeGreaterThan(0);
     expect(screen.getAllByText('📊').length).toBeGreaterThan(0);
@@ -42,7 +97,7 @@ describe('Navigation', () => {
   });
 
   it('renders navigation labels', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     expect(screen.getAllByText('首页').length).toBeGreaterThan(0);
     expect(screen.getAllByText('实时看板').length).toBeGreaterThan(0);
     expect(screen.getAllByText('子代理').length).toBeGreaterThan(0);
@@ -51,39 +106,40 @@ describe('Navigation', () => {
   });
 
   it('renders logo with correct aria-label', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const logoLink = screen.getByLabelText('AI 团队首页');
     expect(logoLink).toBeDefined();
   });
 
   it('renders notification button', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const notificationButton = screen.getByLabelText('通知');
     expect(notificationButton).toBeDefined();
   });
 
   it('renders settings button', () => {
-    render(<Navigation />);
-    const settingsButton = screen.getByLabelText('设置');
-    expect(settingsButton).toBeDefined();
+    renderWithProviders(<Navigation />);
+    // 导航栏中有一个设置菜单项，用户操作区也有一个设置按钮
+    const settingsButtons = screen.getAllByLabelText('设置');
+    expect(settingsButtons.length).toBe(2);
   });
 
   it('highlights current page', () => {
     mockedUsePathname.mockReturnValue('/dashboard');
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const dashboardLink = screen.getByLabelText('实时看板（当前页面）');
     expect(dashboardLink).toBeDefined();
   });
 
   it('has menuitem roles', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const menuItems = screen.getAllByRole('menuitem');
-    expect(menuItems.length).toBe(5);
+    expect(menuItems.length).toBe(6);
   });
 
   it('has proper keyboard navigation data attributes', () => {
-    render(<Navigation />);
+    renderWithProviders(<Navigation />);
     const navLinks = document.querySelectorAll('[data-nav-index]');
-    expect(navLinks.length).toBe(5);
+    expect(navLinks.length).toBe(6);
   });
 });

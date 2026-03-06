@@ -1,13 +1,23 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Task, TaskFilter, TaskPriority, TaskStatus, TaskTag, DEFAULT_TAGS } from './types';
 import { filterTasks, sortTasks, getTaskStats } from './utils';
+import {
+  fetchTasks,
+  createTaskApi,
+  updateTaskApi,
+  deleteTaskApi,
+  batchUpdateStatusApi,
+  fetchTags,
+  createTagApi,
+  deleteTagApi,
+} from './api';
 
-// 本地存储键
-const TASKS_STORAGE_KEY = '7zi_tasks';
-const CUSTOM_TAGS_KEY = '7zi_custom_tags';
+// 本地存储键（用于缓存）
+const TASKS_CACHE_KEY = '7zi_tasks_cache';
+const TAGS_CACHE_KEY = '7zi_tags_cache';
 
 /**
- * 任务管理 Hook
+ * 任务管理 Hook - 使用 API 持久化
  */
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -15,51 +25,89 @@ export function useTasks() {
   const [filter, setFilter] = useState<TaskFilter>({});
   const [sortBy, setSortBy] = useState<'priority' | 'dueDate' | 'createdAt'>('priority');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // 所有可用标签
   const allTags = useMemo(() => [...DEFAULT_TAGS, ...customTags], [customTags]);
 
-  // 从本地存储加载数据
+  // 从 API 加载数据
   useEffect(() => {
-    try {
-      const storedTasks = localStorage.getItem(TASKS_STORAGE_KEY);
-      const storedTags = localStorage.getItem(CUSTOM_TAGS_KEY);
+    let mounted = true;
 
-      if (storedTasks) {
-        const parsed = JSON.parse(storedTasks);
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 并行加载任务和标签
+        const [tasksData, tagsData] = await Promise.all([
+          fetchTasks(),
+          fetchTags(true), // 只获取自定义标签
+        ]);
+
+        if (!mounted) return;
+
         // 转换日期字符串为 Date 对象
-        const tasksWithDates = parsed.map((t: any) => ({
+        const tasksWithDates = tasksData.map((t: Task) => ({
           ...t,
           dueDate: t.dueDate ? new Date(t.dueDate) : undefined,
           createdAt: new Date(t.createdAt),
           updatedAt: new Date(t.updatedAt),
           completedAt: t.completedAt ? new Date(t.completedAt) : undefined,
         }));
+
         setTasks(tasksWithDates);
-      }
+        setCustomTags(tagsData);
 
-      if (storedTags) {
-        setCustomTags(JSON.parse(storedTags));
+        // 更新本地缓存
+        try {
+          localStorage.setItem(TASKS_CACHE_KEY, JSON.stringify(tasksWithDates));
+          localStorage.setItem(TAGS_CACHE_KEY, JSON.stringify(tagsData));
+        } catch {
+          // 忽略缓存错误
+        }
+      } catch (err) {
+        if (!mounted) return;
+
+        const errorMessage = err instanceof Error ? err.message : '加载数据失败';
+        setError(errorMessage);
+
+        // 尝试从本地缓存恢复
+        try {
+          const cachedTasks = localStorage.getItem(TASKS_CACHE_KEY);
+          const cachedTags = localStorage.getItem(TAGS_CACHE_KEY);
+
+          if (cachedTasks) {
+            const parsed = JSON.parse(cachedTasks);
+            const tasksWithDates = parsed.map((t: Task) => ({
+              ...t,
+              dueDate: t.dueDate ? new Date(t.dueDate) : undefined,
+              createdAt: new Date(t.createdAt),
+              updatedAt: new Date(t.updatedAt),
+              completedAt: t.completedAt ? new Date(t.completedAt) : undefined,
+            }));
+            setTasks(tasksWithDates);
+          }
+
+          if (cachedTags) {
+            setCustomTags(JSON.parse(cachedTags));
+          }
+        } catch {
+          // 忽略缓存错误
+        }
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-    } catch (error) {
-      console.error('Failed to load tasks from storage:', error);
-    } finally {
-      setIsLoading(false);
-    }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  // 保存到本地存储
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks));
-    }
-  }, [tasks, isLoading]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      localStorage.setItem(CUSTOM_TAGS_KEY, JSON.stringify(customTags));
-    }
-  }, [customTags, isLoading]);
 
   // 过滤和排序后的任务
   const filteredTasks = useMemo(() => {
@@ -72,76 +120,107 @@ export function useTasks() {
 
   // 添加任务
   const addTask = useCallback(
-    (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-      const newTask: Task = {
-        ...taskData,
-        id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setTasks((prev) => [...prev, newTask]);
-      return newTask;
+    async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+      try {
+        const newTask = await createTaskApi(taskData);
+        const taskWithDates = {
+          ...newTask,
+          dueDate: newTask.dueDate ? new Date(newTask.dueDate) : undefined,
+          createdAt: new Date(newTask.createdAt),
+          updatedAt: new Date(newTask.updatedAt),
+          completedAt: newTask.completedAt ? new Date(newTask.completedAt) : undefined,
+        };
+        setTasks((prev) => [...prev, taskWithDates]);
+        return taskWithDates;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '创建任务失败');
+        throw err;
+      }
     },
     []
   );
 
   // 更新任务
-  const updateTask = useCallback((taskId: string, updates: Partial<Task>) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? {
-              ...task,
-              ...updates,
-              updatedAt: new Date(),
-              completedAt: updates.status === 'done' ? new Date() : task.completedAt,
-            }
-          : task
-      )
-    );
+  const updateTask = useCallback(async (taskId: string, updates: Partial<Task>) => {
+    try {
+      const updatedTask = await updateTaskApi(taskId, updates);
+      const taskWithDates = {
+        ...updatedTask,
+        dueDate: updatedTask.dueDate ? new Date(updatedTask.dueDate) : undefined,
+        createdAt: new Date(updatedTask.createdAt),
+        updatedAt: new Date(updatedTask.updatedAt),
+        completedAt: updatedTask.completedAt ? new Date(updatedTask.completedAt) : undefined,
+      };
+      setTasks((prev) =>
+        prev.map((task) => (task.id === taskId ? taskWithDates : task))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新任务失败');
+      throw err;
+    }
   }, []);
 
   // 删除任务
-  const deleteTask = useCallback((taskId: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+  const deleteTask = useCallback(async (taskId: string) => {
+    try {
+      await deleteTaskApi(taskId);
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除任务失败');
+      throw err;
+    }
   }, []);
 
   // 批量更新任务状态
-  const batchUpdateStatus = useCallback((taskIds: string[], status: TaskStatus) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        taskIds.includes(task.id)
-          ? {
-              ...task,
-              status,
-              updatedAt: new Date(),
-              completedAt: status === 'done' ? new Date() : task.completedAt,
-            }
-          : task
-      )
-    );
+  const batchUpdateStatus = useCallback(async (taskIds: string[], status: TaskStatus) => {
+    try {
+      await batchUpdateStatusApi(taskIds, status);
+      setTasks((prev) =>
+        prev.map((task) =>
+          taskIds.includes(task.id)
+            ? {
+                ...task,
+                status,
+                updatedAt: new Date(),
+                completedAt: status === 'done' ? new Date() : task.completedAt,
+              }
+            : task
+        )
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '批量更新失败');
+      throw err;
+    }
   }, []);
 
   // 添加自定义标签
-  const addCustomTag = useCallback((tag: Omit<TaskTag, 'id'>) => {
-    const newTag: TaskTag = {
-      ...tag,
-      id: `tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    };
-    setCustomTags((prev) => [...prev, newTag]);
-    return newTag;
+  const addCustomTag = useCallback(async (tag: Omit<TaskTag, 'id'>) => {
+    try {
+      const newTag = await createTagApi(tag);
+      setCustomTags((prev) => [...prev, newTag]);
+      return newTag;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '创建标签失败');
+      throw err;
+    }
   }, []);
 
   // 删除自定义标签
-  const deleteCustomTag = useCallback((tagId: string) => {
-    setCustomTags((prev) => prev.filter((tag) => tag.id !== tagId));
-    // 同时从所有任务中移除该标签
-    setTasks((prev) =>
-      prev.map((task) => ({
-        ...task,
-        tags: task.tags.filter((tag) => tag.id !== tagId),
-      }))
-    );
+  const deleteCustomTag = useCallback(async (tagId: string) => {
+    try {
+      await deleteTagApi(tagId);
+      setCustomTags((prev) => prev.filter((tag) => tag.id !== tagId));
+      // 同时从所有任务中移除该标签
+      setTasks((prev) =>
+        prev.map((task) => ({
+          ...task,
+          tags: task.tags.filter((tag) => tag.id !== tagId),
+        }))
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '删除标签失败');
+      throw err;
+    }
   }, []);
 
   // 更新过滤器
@@ -178,6 +257,11 @@ export function useTasks() {
     [tasks]
   );
 
+  // 清除错误
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
     // 状态
     tasks: filteredTasks,
@@ -187,6 +271,7 @@ export function useTasks() {
     filter,
     sortBy,
     isLoading,
+    error,
     stats,
 
     // 操作
@@ -199,6 +284,7 @@ export function useTasks() {
     updateFilter,
     resetFilter,
     setSortBy,
+    clearError,
 
     // 查询
     getTaskById,

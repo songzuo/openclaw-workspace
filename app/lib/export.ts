@@ -1,9 +1,45 @@
 /**
- * 导出工具 - 支持 PDF 和 CSV 格式导出数据
+ * 导出工具 - 支持 PDF、CSV、JSON 格式导出数据
  */
 
 import { jsPDF } from 'jspdf';
 import type { AIMember, GitHubIssue, GitHubCommit, ActivityItem } from '../dashboard/page';
+import type { Task, TaskStats } from './tasks/types';
+
+// ============================================================================
+// 类型定义
+// ============================================================================
+
+export type ExportFormat = 'csv' | 'json' | 'pdf';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  filename?: string;
+  includeStats?: boolean;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+export interface ReportData {
+  members: AIMember[];
+  issues: GitHubIssue[];
+  commits: GitHubCommit[];
+  activities: ActivityItem[];
+  tasks?: Task[];
+  stats: {
+    totalMembers: number;
+    working: number;
+    busy: number;
+    idle: number;
+    offline: number;
+    openIssues: number;
+    closedIssues: number;
+  };
+  taskStats?: TaskStats;
+  generatedAt: Date;
+}
 
 // ============================================================================
 // CSV 导出函数
@@ -38,7 +74,7 @@ function arrayToCSV(data: Record<string, unknown>[]): string {
  */
 export function downloadCSV(data: Record<string, unknown>[], filename: string): void {
   const csv = arrayToCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   
@@ -48,6 +84,7 @@ export function downloadCSV(data: Record<string, unknown>[], filename: string): 
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -117,6 +154,85 @@ export function exportActivitiesCSV(activities: ActivityItem[]): void {
   downloadCSV(data, 'activity-log');
 }
 
+/**
+ * 导出任务数据为 CSV
+ */
+export function exportTasksCSV(tasks: Task[]): void {
+  const data = tasks.map(task => ({
+    ID: task.id,
+    标题: task.title,
+    描述: task.description || '',
+    优先级: task.priority,
+    状态: task.status,
+    标签: task.tags.map(t => t.name).join(';'),
+    负责人: task.assignee || '',
+    截止日期: task.dueDate ? new Date(task.dueDate).toISOString() : '',
+    创建时间: new Date(task.createdAt).toISOString(),
+    更新时间: new Date(task.updatedAt).toISOString(),
+    完成时间: task.completedAt ? new Date(task.completedAt).toISOString() : '',
+  }));
+  
+  downloadCSV(data, 'tasks');
+}
+
+// ============================================================================
+// JSON 导出函数
+// ============================================================================
+
+/**
+ * 下载 JSON 文件
+ */
+export function downloadJSON(data: unknown, filename: string): void {
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute('href', url);
+  link.setAttribute('download', `${filename}.json`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * 导出完整报告为 JSON
+ */
+export function exportReportJSON(reportData: ReportData): void {
+  const exportData = {
+    ...reportData,
+    generatedAt: reportData.generatedAt.toISOString(),
+    exportedBy: 'AI Team Dashboard',
+    version: '1.0.0',
+  };
+  
+  downloadJSON(exportData, `report-${formatDateForFilename(reportData.generatedAt)}`);
+}
+
+/**
+ * 导出成员数据为 JSON
+ */
+export function exportMembersJSON(members: AIMember[]): void {
+  downloadJSON(members, 'ai-team-members');
+}
+
+/**
+ * 导出任务数据为 JSON
+ */
+export function exportTasksJSON(tasks: Task[]): void {
+  const data = tasks.map(task => ({
+    ...task,
+    dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+    createdAt: new Date(task.createdAt).toISOString(),
+    updatedAt: new Date(task.updatedAt).toISOString(),
+    completedAt: task.completedAt ? new Date(task.completedAt).toISOString() : null,
+  }));
+  
+  downloadJSON(data, 'tasks');
+}
+
 // ============================================================================
 // PDF 导出函数
 // ============================================================================
@@ -143,28 +259,28 @@ export function exportToPDF(
   
   // 标题
   doc.setFontSize(20);
-  doc.text('AI 团队看板报告', 105, yPos, { align: 'center' });
+  doc.text('AI Team Dashboard Report', 105, yPos, { align: 'center' });
   yPos += 15;
   
   // 生成日期
   doc.setFontSize(10);
-  doc.text(`生成时间: ${new Date().toLocaleString('zh-CN')}`, 105, yPos, { align: 'center' });
+  doc.text(`Generated: ${new Date().toLocaleString('en-US')}`, 105, yPos, { align: 'center' });
   yPos += 15;
   
   // 统计信息
   doc.setFontSize(14);
-  doc.text('📊 团队统计', 20, yPos);
+  doc.text('Team Statistics', 20, yPos);
   yPos += 10;
   
   doc.setFontSize(10);
   const statsText = [
-    `总成员: ${stats.totalMembers}`,
-    `工作中: ${stats.working}`,
-    `忙碌: ${stats.busy}`,
-    `空闲: ${stats.idle}`,
-    `离线: ${stats.offline}`,
-    `进行中任务: ${stats.openIssues}`,
-    `已完成任务: ${stats.closedIssues}`,
+    `Total Members: ${stats.totalMembers}`,
+    `Working: ${stats.working}`,
+    `Busy: ${stats.busy}`,
+    `Idle: ${stats.idle}`,
+    `Offline: ${stats.offline}`,
+    `Open Issues: ${stats.openIssues}`,
+    `Closed Issues: ${stats.closedIssues}`,
   ];
   
   statsText.forEach(text => {
@@ -176,7 +292,7 @@ export function exportToPDF(
   
   // 成员列表
   doc.setFontSize(14);
-  doc.text('👥 团队成员', 20, yPos);
+  doc.text('Team Members', 20, yPos);
   yPos += 10;
   
   doc.setFontSize(9);
@@ -190,12 +306,12 @@ export function exportToPDF(
                        member.status === 'busy' ? '⚡' : 
                        member.status === 'idle' ? '😊' : '⚫';
     
-    const line = `${statusEmoji} ${member.name} (${member.role}) - ${member.provider} - 已完成 ${member.completedTasks} 任务`;
+    const line = `${statusEmoji} ${member.name} (${member.role}) - ${member.provider} - ${member.completedTasks} completed`;
     doc.text(line, 25, yPos);
     yPos += 5;
     
     if (member.currentTask) {
-      doc.text(`   当前: ${member.currentTask}`, 25, yPos);
+      doc.text(`   Current: ${member.currentTask}`, 25, yPos);
       yPos += 5;
     }
   });
@@ -210,7 +326,7 @@ export function exportToPDF(
     }
     
     doc.setFontSize(14);
-    doc.text('📋 GitHub Issues', 20, yPos);
+    doc.text('GitHub Issues', 20, yPos);
     yPos += 10;
     
     doc.setFontSize(8);
@@ -220,16 +336,114 @@ export function exportToPDF(
         yPos = 20;
       }
       
-      const status = issue.state === 'open' ? '🔵' : '✅';
-      const assignee = issue.assignee ? `@${issue.assignee.login}` : '待分配';
-      const line = `${status} #${issue.number} ${issue.title.substring(0, 50)} - ${assignee}`;
+      const status = issue.state === 'open' ? 'OPEN' : 'DONE';
+      const assignee = issue.assignee ? `@${issue.assignee.login}` : 'Unassigned';
+      const line = `[${status}] #${issue.number} ${issue.title.substring(0, 50)} - ${assignee}`;
       doc.text(line, 25, yPos);
       yPos += 5;
     });
   }
   
   // 保存 PDF
-  doc.save('ai-team-report.pdf');
+  doc.save(`ai-team-report-${formatDateForFilename(new Date())}.pdf`);
+}
+
+/**
+ * 导出任务报告 PDF
+ */
+export function exportTasksPDF(tasks: Task[], stats: TaskStats): void {
+  const doc = new jsPDF();
+  let yPos = 20;
+  
+  // 标题
+  doc.setFontSize(20);
+  doc.text('Task Report', 105, yPos, { align: 'center' });
+  yPos += 10;
+  
+  // 生成日期
+  doc.setFontSize(10);
+  doc.text(`Generated: ${new Date().toLocaleString('en-US')}`, 105, yPos, { align: 'center' });
+  yPos += 15;
+  
+  // 统计信息
+  doc.setFontSize(14);
+  doc.text('Task Statistics', 20, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  const statsLines = [
+    `Total Tasks: ${stats.total}`,
+    `Completed: ${stats.done} (${stats.completionRate}%)`,
+    `In Progress: ${stats.inProgress}`,
+    `To Do: ${stats.todo}`,
+    `In Review: ${stats.review}`,
+    `Overdue: ${stats.overdue}`,
+    `Due Soon: ${stats.dueSoon}`,
+  ];
+  
+  statsLines.forEach(line => {
+    doc.text(line, 25, yPos);
+    yPos += 6;
+  });
+  
+  yPos += 10;
+  
+  // 优先级分布
+  doc.setFontSize(12);
+  doc.text('Priority Distribution', 20, yPos);
+  yPos += 8;
+  doc.setFontSize(10);
+  doc.text(`High: ${stats.byPriority.high} | Medium: ${stats.byPriority.medium} | Low: ${stats.byPriority.low}`, 25, yPos);
+  yPos += 15;
+  
+  // 任务列表
+  doc.setFontSize(14);
+  doc.text('Task List', 20, yPos);
+  yPos += 10;
+  
+  const statusIcons: Record<string, string> = {
+    todo: '[ ]',
+    in_progress: '[~]',
+    review: '[?]',
+    done: '[X]',
+  };
+  
+  const priorityIcons: Record<string, string> = {
+    high: '!!!',
+    medium: '!!',
+    low: '!',
+  };
+  
+  doc.setFontSize(8);
+  tasks.forEach(task => {
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    const icon = statusIcons[task.status] || '[ ]';
+    const priority = priorityIcons[task.priority] || '!';
+    const tags = task.tags.map(t => t.name).join(', ');
+    
+    doc.text(`${icon} ${priority} ${task.title}`, 25, yPos);
+    yPos += 4;
+    
+    if (task.description) {
+      doc.text(`     ${task.description.substring(0, 80)}${task.description.length > 80 ? '...' : ''}`, 25, yPos);
+      yPos += 4;
+    }
+    
+    if (tags) {
+      doc.setTextColor(100, 100, 100);
+      doc.text(`     Tags: ${tags}`, 25, yPos);
+      doc.setTextColor(0, 0, 0);
+      yPos += 4;
+    }
+    
+    yPos += 3;
+  });
+  
+  doc.save(`task-report-${formatDateForFilename(new Date())}.pdf`);
 }
 
 /**
@@ -250,13 +464,98 @@ export function exportFullReport(
     closedIssues: number;
   }
 ): void {
-  // 同时导出 CSV 文件（打包为 ZIP 或者逐个下载）
-  // 这里我们导出主要数据的 CSV
-  
   // 导出 PDF 报告
   exportToPDF(members, issues, commits, stats);
   
-  // 导出 CSV 文件（用户可以分别下载）
+  // 导出 CSV 文件
   exportMembersCSV(members);
   exportIssuesCSV(issues);
+}
+
+// ============================================================================
+// 通用导出函数
+// ============================================================================
+
+/**
+ * 根据格式导出数据
+ */
+export function exportData(
+  data: unknown[],
+  format: ExportFormat,
+  filename: string
+): void {
+  switch (format) {
+    case 'csv':
+      downloadCSV(data as Record<string, unknown>[], filename);
+      break;
+    case 'json':
+      downloadJSON(data, filename);
+      break;
+    case 'pdf':
+      // PDF 需要特殊处理，这里只支持特定数据类型
+      console.warn('PDF export requires specific data types. Use exportToPDF or exportTasksPDF instead.');
+      break;
+  }
+}
+
+/**
+ * 导出完整报告数据
+ */
+export function exportCompleteReport(
+  reportData: ReportData,
+  format: ExportFormat = 'json'
+): void {
+  const filename = `complete-report-${formatDateForFilename(reportData.generatedAt)}`;
+  
+  switch (format) {
+    case 'json':
+      exportReportJSON(reportData);
+      break;
+    case 'pdf':
+      exportToPDF(
+        reportData.members,
+        reportData.issues,
+        reportData.commits,
+        reportData.stats
+      );
+      if (reportData.tasks && reportData.taskStats) {
+        exportTasksPDF(reportData.tasks, reportData.taskStats);
+      }
+      break;
+    case 'csv':
+      // 导出多个 CSV 文件
+      exportMembersCSV(reportData.members);
+      exportIssuesCSV(reportData.issues);
+      exportCommitsCSV(reportData.commits);
+      exportActivitiesCSV(reportData.activities);
+      if (reportData.tasks) {
+        exportTasksCSV(reportData.tasks);
+      }
+      break;
+  }
+}
+
+// ============================================================================
+// 辅助函数
+// ============================================================================
+
+/**
+ * 格式化日期用于文件名
+ */
+function formatDateForFilename(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * 复制数据到剪贴板
+ */
+export async function copyToClipboard(data: unknown): Promise<boolean> {
+  try {
+    const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (error) {
+    console.error('Failed to copy to clipboard:', error);
+    return false;
+  }
 }

@@ -12,7 +12,7 @@ export interface GitHubIssue {
   created_at: string;
   updated_at: string;
   html_url: string;
-  assignee?: { login: string; avatar_url: string };
+  assignee?: { login: string; avatar_url: string } | null;
   pull_request?: object;
 }
 
@@ -23,7 +23,7 @@ export interface GitHubCommit {
     author: { name: string; date: string };
   };
   html_url: string;
-  author?: { avatar_url: string };
+  author?: { avatar_url: string } | null;
 }
 
 export interface ActivityItem {

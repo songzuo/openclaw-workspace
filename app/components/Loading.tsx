@@ -10,7 +10,7 @@ import {
   SkeletonStatCard,
   SkeletonTable,
 } from './Skeleton';
-import { ProgressBar, CircularProgress, StepProgress, LoadingProgress } from './ProgressBar';
+import ProgressBar, { CircularProgress } from './ProgressBar';
 
 export {
   LoadingSpinner,
@@ -22,8 +22,6 @@ export {
   SkeletonTable,
   ProgressBar,
   CircularProgress,
-  StepProgress,
-  LoadingProgress,
 };
 
 // ============================================================================
@@ -51,7 +49,12 @@ export const LoadingPage: React.FC<LoadingPageProps> = ({
             <p className="mt-4 text-gray-600 font-medium">{message}</p>
           </>
         )}
-        {!showSpinner && <LoadingProgress message={message} size="lg" />}
+        {!showSpinner && (
+          <div className="w-48">
+            <ProgressBar value={100} color="gradient" animated />
+            <p className="mt-4 text-gray-600 font-medium">{message}</p>
+          </div>
+        )}
       </div>
     </div>
   );

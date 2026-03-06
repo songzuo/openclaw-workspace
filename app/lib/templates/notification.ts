@@ -78,9 +78,9 @@ export interface NotificationResult extends TemplateResult {
   message: string;
   type: NotificationType;
   icon: string;
-  priority: NotificationPriority;
-  channels: NotificationChannel[];
-  actions: NotificationAction[];
+  priority?: NotificationPriority;
+  channels?: NotificationChannel[];
+  actions?: NotificationAction[];
   html: string;
   text: string;
   push?: {
@@ -110,7 +110,7 @@ const NOTIFICATION_ICONS: Record<NotificationType, string> = {
  * Base Notification Template Class
  */
 export abstract class NotificationTemplate implements BaseTemplate<NotificationContext, NotificationResult> {
-  protected config: NotificationTemplateConfig;
+  protected config: Required<NotificationTemplateConfig> & { icon: string };
 
   constructor(config: NotificationTemplateConfig) {
     this.config = {
@@ -120,7 +120,7 @@ export abstract class NotificationTemplate implements BaseTemplate<NotificationC
       icon: NOTIFICATION_ICONS[config.type] || '📢',
       actions: [],
       ...config,
-    };
+    } as Required<NotificationTemplateConfig> & { icon: string };
   }
 
   abstract render(context: NotificationContext): NotificationResult;

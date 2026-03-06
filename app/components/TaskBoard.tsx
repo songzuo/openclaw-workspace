@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useId, useMemo } from 'react';
 import { GitHubIssue } from '../dashboard/page';
-import { ProgressBar } from './ProgressBar';
+import ProgressBar from './ProgressBar';
 
 interface TaskBoardProps {
   issues: GitHubIssue[];

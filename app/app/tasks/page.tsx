@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useTasks } from '@/lib/tasks/useTasks';
+import { useTasks } from '@/lib/tasks/useTasksQuery';
 import { Task } from '@/lib/tasks/types';
 import { TaskCard } from '@/components/tasks/TaskCard';
 import { TaskForm } from '@/components/tasks/TaskForm';
@@ -32,6 +32,7 @@ export default function TasksPage() {
     filter,
     sortBy,
     isLoading,
+    error,
     stats,
     addTask,
     updateTask,
@@ -39,36 +40,58 @@ export default function TasksPage() {
     updateFilter,
     resetFilter,
     setSortBy,
+    clearError,
   } = useTasks();
 
   const [showForm, setShowForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | undefined>();
   const [activeTab, setActiveTab] = useState<'all' | Task['status']>('all');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 创建任务
-  const handleCreateTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    addTask(taskData);
-    setShowForm(false);
+  const handleCreateTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    setIsSubmitting(true);
+    try {
+      await addTask(taskData);
+      setShowForm(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '创建任务失败');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // 更新任务
-  const handleUpdateTask = (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (editingTask) {
-      updateTask(editingTask.id, taskData);
+  const handleUpdateTask = async (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!editingTask) return;
+    setIsSubmitting(true);
+    try {
+      await updateTask(editingTask.id, taskData);
       setEditingTask(undefined);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '更新任务失败');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   // 删除任务
-  const handleDeleteTask = (taskId: string) => {
-    if (confirm('确定要删除这个任务吗？')) {
-      deleteTask(taskId);
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('确定要删除这个任务吗？')) return;
+    try {
+      await deleteTask(taskId);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '删除任务失败');
     }
   };
 
   // 更改任务状态
-  const handleStatusChange = (taskId: string, status: Task['status']) => {
-    updateTask(taskId, { status });
+  const handleStatusChange = async (taskId: string, status: Task['status']) => {
+    try {
+      await updateTask(taskId, { status });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '更新状态失败');
+    }
   };
 
   // 标签页计数
@@ -98,6 +121,19 @@ export default function TasksPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* 错误提示 */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center justify-between">
+            <p className="text-red-800 dark:text-red-200">⚠️ {error}</p>
+            <button
+              onClick={clearError}
+              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        
         {/* 头部 */}
         <header className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

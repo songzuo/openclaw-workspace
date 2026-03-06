@@ -381,3 +381,74 @@ textarea:focus {
 .font-semibold {
   font-weight: 600;
 }
+
+/* ============================================================================
+ * 主题切换动画
+ * ============================================================================ */
+
+/* 主题切换过渡效果 */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.3s ease,
+              border-color 0.3s ease,
+              color 0.3s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease,
+              box-shadow 0.3s ease !important;
+}
+
+/* 主题切换动画类 */
+.animate-theme-switch {
+  animation: theme-fade 0.3s ease-in-out;
+}
+
+@keyframes theme-fade {
+  0% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 主题切换涟漪效果（可选） */
+.theme-switch-ripple {
+  position: fixed;
+  border-radius: 50%;
+  transform: scale(0);
+  animation: theme-ripple 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+@keyframes theme-ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+/* 深色模式颜色变量 */
+:root {
+  --theme-transition-duration: 0.3s;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+/* 禁用主题过渡（减少动画模式） */
+@media (prefers-reduced-motion: reduce) {
+  .theme-transition,
+  .theme-transition *,
+  .theme-transition *::before,
+  .theme-transition *::after {
+    transition: none !important;
+  }
+  
+  .animate-theme-switch {
+    animation: none !important;
+  }
+}

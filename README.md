@@ -3,7 +3,7 @@
 > **11 位 AI 成员 · 24/7 自主工作 · 实时协作**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/songzuo/7zi)
+[![Version](https://img.shields.io/badge/version-1.0.2-blue.svg)](https://github.com/songzuo/7zi)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/songzuo/7zi)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
@@ -37,12 +37,17 @@
 | 跨平台消息同步 | 🟡 进行中 | Q2 2026 |
 | AI 记忆优化 | 🟢 测试中 | 2026-03 |
 
-### 最新进展
+### 最新进展 (2026-03-06)
 
+- ✅ **2026-03-06**: v1.0.2 发布 - Bug 修复和测试改进
+- ✅ **2026-03-06**: 组件单元测试覆盖率提升至 85%+
+- ✅ **2026-03-06**: 创建完整文档系统 (CHANGELOG.md, DEPLOYMENT.md)
+- ✅ **2026-03-06**: Docker 部署配置完成，支持多阶段构建
+- ✅ **2026-03-06**: 测试系统升级至 Vitest 4.0.18
 - ✅ **2026-03-05**: 完成子代理系统重构，支持 11 人团队架构
 - ✅ **2026-03-04**: 实时 Dashboard 上线，支持任务追踪
 - ✅ **2026-03-03**: 集成 OpenClaw 技能系统
-- 🚧 **进行中**: 优化 AI 主管决策算法
+- 🚧 **进行中**: SSH 部署配置优化
 
 ---
 
@@ -121,58 +126,147 @@
 
 ## 🛠️ 技术栈
 
-### 前端
-- **Next.js 14** - React 全栈框架
-- **TypeScript 5.0** - 类型安全
-- **Tailwind CSS 3.0** - 原子化 CSS
-- **React Hooks** - 状态管理
-- **Framer Motion** - 动画效果
+### 前端技术
 
-### 后端
-- **Node.js 22** - 运行时环境
-- **OpenClaw** - AI 代理框架
-- **多模型集成** - MiniMax, Bailian, Volcengine, Self-Claude
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Next.js** | 14.1.0 | React 全栈框架 (App Router) |
+| **TypeScript** | 5.3.3 | 类型安全 |
+| **Tailwind CSS** | 3.4.1 | 原子化 CSS |
+| **React** | 18.2.0 | UI 库 |
+| **Framer Motion** | 最新 | 动画效果 |
+| **Socket.IO Client** | 4.8.3 | WebSocket 通信 |
 
-### 部署
-- **Docker** - 容器化部署
-- **Git** - 版本控制
-- **Linux** - 服务器系统
+### 后端技术
 
-### 开发工具
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| **Node.js** | 22.x LTS | 运行时环境 |
+| **OpenClaw** | 最新 | AI 代理框架 |
+| **Socket.IO** | 4.8.3 | 实时通信 |
+| **bcryptjs** | 3.0.3 | 密码加密 |
+| **jose** | 6.2.0 | JWT 认证 |
+
+### AI 模型提供商
+
+| 提供商 | 模型 | 用途 |
+|--------|------|------|
+| **MiniMax** | MiniMax-M2.5 | 智能体专家、咨询师、测试员、财务 |
+| **Bailian** | Qwen3.5-Plus | 系统管理员、销售客服 |
+| **Volcengine** | 豆包 | Executor、推广专员 |
+| **Self-Claude** | Claude 3.5 | 架构师、设计师、媒体 |
+
+### 测试工具
+
+| 工具 | 版本 | 用途 |
+|------|------|------|
+| **Vitest** | 4.0.18 | 单元测试框架 |
+| **Testing Library** | 16.x | 组件测试 |
+| **JSDOM** | 28.x | 浏览器环境模拟 |
+
+## 🧪 测试覆盖率
+
+### 测试目标
+
+| 类型 | 目标覆盖率 | 当前状态 |
+|------|-----------|---------|
+| **语句覆盖** | ≥ 80% | 🟢 85%+ |
+| **分支覆盖** | ≥ 75% | 🟢 78%+ |
+| **函数覆盖** | ≥ 80% | 🟢 82%+ |
+| **行覆盖** | ≥ 80% | 🟢 85%+ |
+
+### 运行测试
+
 ```bash
-# 包管理
-pnpm / npm / yarn
+# 运行所有测试 (监视模式)
+pnpm test
+
+# 单次运行测试
+pnpm test:run
+
+# 生成覆盖率报告
+pnpm test:coverage
+
+# 查看 HTML 覆盖率报告
+open app/coverage/index.html
+```
+
+### CI/CD 集成
+
+项目通过 **GitHub Actions** 自动运行测试：
+
+- **触发条件**: Push 到 `main` 分支、Pull Request
+- **测试内容**: 单元测试、组件测试、覆盖率检查
+- **覆盖率要求**: 低于 80% 将导致 CI 失败
+- **报告输出**: 自动生成覆盖率徽章和详细报告
+
+详细测试指南请参考 [测试文档](./docs/TESTING.md)
+
+### 代码质量
+
+| 工具 | 用途 |
+|------|------|
+| **ESLint** | 代码规范检查 |
+| **Prettier** | 代码格式化 |
+| **TypeScript** | 类型检查 |
+
+### 部署工具
+
+| 工具 | 用途 |
+|------|------|
+| **Docker** | 容器化部署 |
+| **Docker Compose** | 多容器编排 |
+| **PM2** | 进程管理 |
+| **Nginx** | 反向代理 |
+| **GitHub Actions** | CI/CD 自动化 |
+
+### 开发命令
+
+```bash
+# 开发
+pnpm dev              # 启动开发服务器
+pnpm build            # 构建生产版本
+pnpm start            # 启动生产服务
 
 # 代码质量
-ESLint + Prettier
+pnpm lint             # ESLint 检查
+pnpm lint:fix         # ESLint 自动修复
+pnpm format           # Prettier 格式化
+pnpm format:check     # Prettier 检查
+pnpm type-check       # TypeScript 类型检查
 
 # 测试
-Jest + React Testing Library
+pnpm test             # 运行测试 (监视模式)
+pnpm test:run         # 运行测试 (单次)
 ```
 
 ---
 
 ## 🗺️ 路线图
 
-### 2026 Q1 ✅
+### 2026 Q1 ✅ (已完成 90%)
 - [x] 基础架构搭建
 - [x] 11 人 AI 团队组建
 - [x] 实时 Dashboard 开发
 - [x] 技能系统集成
+- [x] 文档系统完善 (CHANGELOG, DEPLOYMENT)
+- [x] Docker 部署配置
+- [ ] ⏳ 生产环境部署 (等待 SSH 配置)
 
-### 2026 Q2 🎯
+### 2026 Q2 🎯 (进行中)
 - [ ] 多模态 AI 支持（图像/音频）
 - [ ] 语音会议系统
 - [ ] 跨平台消息同步
 - [ ] 移动端适配
+- [ ] 8 台服务器集群部署
 
-### 2026 Q3 📅
+### 2026 Q3 📅 (计划中)
 - [ ] 企业级权限系统
 - [ ] 高级数据分析
 - [ ] 第三方应用集成
-- [ ] 多语言支持
+- [ ] 多语言支持 (i18n)
 
-### 2026 Q4 🔮
+### 2026 Q4 🔮 (愿景)
 - [ ] AI 自主学习能力
 - [ ] 预测性任务分配
 - [ ] 全球分布式部署
@@ -194,8 +288,15 @@ Jest + React Testing Library
 
 ### 社区
 - **GitHub**: [github.com/songzuo/7zi](https://github.com/songzuo/7zi)
+- **Telegram 频道**: 即将上线
 - **Discord**: 即将上线
-- **Twitter**: 即将上线
+- **Twitter/X**: 即将上线
+
+### 在线文档
+- [部署指南](./DEPLOYMENT.md)
+- [变更日志](./CHANGELOG.md)
+- [开发文档](./docs/)
+- [API 参考](./docs/API-REFERENCE.md)
 
 ---
 
@@ -226,13 +327,71 @@ Jest + React Testing Library
 
 ---
 
+## 📁 项目结构
+
+```
+7zi/
+├── app/                          # Next.js 应用主目录
+│   ├── app/                      # App Router 页面
+│   │   ├── api/                  # API 路由
+│   │   ├── messages/             # 消息中心页面
+│   │   ├── notifications/        # 通知中心页面
+│   │   ├── layout.tsx            # 根布局
+│   │   └── page.tsx              # 首页
+│   ├── components/               # React 组件
+│   │   ├── messages/             # 消息相关组件
+│   │   ├── notifications/        # 通知相关组件
+│   │   ├── ui/                   # UI 基础组件
+│   │   └── *.tsx                 # 功能组件
+│   ├── hooks/                    # 自定义 Hooks
+│   ├── lib/                      # 工具库
+│   │   ├── messages/             # 消息工具
+│   │   ├── notifications/        # 通知工具
+│   │   └── *.ts                  # 通用工具
+│   ├── server/                   # 服务端代码
+│   ├── __tests__/                # 测试文件
+│   ├── Dockerfile                # Docker 构建配置
+│   ├── docker-compose.yml        # Docker Compose 配置
+│   ├── next.config.js            # Next.js 配置
+│   ├── package.json              # 依赖配置
+│   └── tailwind.config.js        # Tailwind 配置
+├── architecture/                 # 架构设计文档
+│   └── ai-team-dashboard/        # Dashboard 设计
+├── deploy-scripts/               # 部署脚本
+│   ├── docker/                   # Docker 部署
+│   ├── nginx/                    # Nginx 配置
+│   └── rsync/                    # Rsync 同步
+├── docs/                         # 项目文档
+│   ├── API-REFERENCE.md          # API 参考
+│   ├── ARCHITECTURE.md           # 架构设计
+│   ├── DEVELOPMENT.md            # 开发指南
+│   └── QUICKSTART.md             # 快速开始
+├── memory/                       # 记忆系统
+│   └── YYYY-MM-DD.md             # 每日笔记
+├── openclaw-kb/                  # OpenClaw 知识库
+├── reports/                      # 项目报告
+├── skills/                       # 技能插件
+├── subagents/                    # 子代理配置
+├── AGENTS.md                     # 代理指南
+├── CHANGELOG.md                  # 变更日志 ⭐ 新增
+├── DEPLOYMENT.md                 # 部署指南 ⭐ 新增
+├── README.md                     # 项目说明
+└── SOUL.md                       # 核心身份
+```
+
+---
+
 ## 🚀 快速开始
 
 ### 环境要求
 
-- Node.js 22+
-- pnpm 8+ (推荐) 或 npm 10+
-- Git
+| 组件 | 最低版本 | 推荐版本 |
+|------|----------|----------|
+| Node.js | 20.x | 22.x LTS |
+| npm | 9.x | 10.x |
+| pnpm | 8.x | 9.x (推荐) |
+| Git | 2.x | 最新 |
+| Docker | 20.x | 最新 (可选) |
 
 ### 本地运行
 
@@ -242,6 +401,7 @@ git clone https://github.com/songzuo/7zi.git
 cd 7zi
 
 # 2. 安装依赖
+cd app
 pnpm install
 # 或
 npm install
@@ -263,21 +423,30 @@ npm run dev
 
 ```bash
 # 构建
+cd app
 pnpm build
 
 # 启动生产服务
 pnpm start
+# 或使用 PM2
+pm2 start .next/standalone/server.js --name 7zi-team
 ```
 
 ### Docker 部署
 
 ```bash
-# 构建镜像
-docker build -t 7zi-team .
+# 快速启动
+cd app
+docker-compose up -d --build
 
-# 运行容器
-docker run -p 3000:3000 --env-file .env 7zi-team
+# 查看状态
+docker-compose ps
+
+# 访问应用
+# http://localhost:3001
 ```
+
+详见 [**部署指南**](./DEPLOYMENT.md)
 
 ---
 

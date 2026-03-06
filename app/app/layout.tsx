@@ -3,6 +3,9 @@ import { Inter } from 'next/font/google';
 import '../globals.css';
 import { Navigation } from '../components/Navigation';
 import { ThemeProvider } from '../components/ThemeProvider';
+import { GlobalErrorHandler } from '../components/GlobalErrorHandler';
+import ErrorBoundary from '../components/ErrorBoundary';
+import { QueryProvider } from '../lib/query';
 
 // 使用 next/font 优化 - 自动优化字体加载
 const inter = Inter({ 
@@ -206,15 +209,22 @@ export default function RootLayout({
           跳到主要内容
         </a>
         
-        <ThemeProvider>
-          {/* 导航组件 */}
-          <Navigation />
-          
-          {/* 主内容区域 */}
-          <main id="main-content" tabIndex={-1} className="outline-none">
-            {children}
-          </main>
-        </ThemeProvider>
+        <QueryProvider>
+          <ThemeProvider>
+            {/* 全局错误处理 */}
+            <GlobalErrorHandler>
+              {/* 导航组件 */}
+              <Navigation />
+              
+              {/* 主内容区域 - 包含错误边界 */}
+              <main id="main-content" tabIndex={-1} className="outline-none">
+                <ErrorBoundary name="RootLayout">
+                  {children}
+                </ErrorBoundary>
+              </main>
+            </GlobalErrorHandler>
+          </ThemeProvider>
+        </QueryProvider>
         
         {/* 页脚信息 */}
         <footer className="sr-only" aria-label="网站信息">

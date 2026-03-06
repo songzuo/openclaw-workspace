@@ -305,8 +305,8 @@ describe('Notification Template System', () => {
       });
 
       expect(result.actions).toHaveLength(2);
-      expect(result.actions[0].label).toBe('View');
-      expect(result.actions[0].url).toBe('https://example.com/view');
+      expect(result.actions![0].label).toBe('View');
+      expect(result.actions![0].url).toBe('https://example.com/view');
       expect(result.html).toContain('View');
       expect(result.html).toContain('https://example.com/view');
     });

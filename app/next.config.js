@@ -1,7 +1,8 @@
+const { withSentryConfig } = require('@sentry/nextjs');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
   // 性能优化：压缩输出
   compress: true,
   // 图片优化配置
@@ -20,13 +21,26 @@ const nextConfig = {
   // 安全策略
   poweredByHeader: false,
   // 静态资源优化
-  trailingSlash: true,
-  // 导出静态页面
-  output: 'export',
+  trailingSlash: false,
+  // 使用 standalone 输出模式支持 API 路由
+  // 如需静态导出，改为 output: 'export'
+  output: 'standalone',
   // 实验性功能
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
 };
 
-module.exports = nextConfig;
+// Sentry 配置
+const sentryWebpackPluginOptions = {
+  silent: true, // 安静模式，减少构建日志
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  release: process.env.SENTRY_RELEASE || process.env.npm_package_version,
+};
+
+// 使用 withSentryConfig 包装配置
+const moduleExports = withSentryConfig(nextConfig, sentryWebpackPluginOptions);
+
+module.exports = moduleExports;

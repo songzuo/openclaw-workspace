@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTheme } from './ThemeProvider';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavItem {
   href: string;
@@ -33,15 +34,20 @@ const NAV_ITEMS: NavItem[] = [
     icon: '📋',
   },
   {
-    href: '/memory',
-    label: '记忆',
-    icon: '🧠',
+    href: '/profile',
+    label: '个人资料',
+    icon: '👤',
+  },
+  {
+    href: '/settings',
+    label: '设置',
+    icon: '⚙️',
   },
 ];
 
 export const Navigation: React.FC = () => {
   const pathname = usePathname();
-  const { resolvedTheme, toggleTheme } = useTheme();
+  const { toggleTheme, resolvedTheme } = useTheme();
 
   // 键盘导航处理
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -131,14 +137,7 @@ export const Navigation: React.FC = () => {
           {/* 右侧操作区 */}
           <div className="flex items-center gap-2" role="group" aria-label="用户操作">
             {/* 主题切换按钮 */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-              aria-label={resolvedTheme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
-              type="button"
-            >
-              <span aria-hidden="true">{resolvedTheme === 'light' ? '🌙' : '☀️'}</span>
-            </button>
+            <ThemeToggle size="md" />
             <button
               className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
               aria-label="通知"
@@ -146,13 +145,18 @@ export const Navigation: React.FC = () => {
             >
               <span aria-hidden="true">🔔</span>
             </button>
-            <button
-              className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <Link
+              href="/settings"
+              className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                pathname === '/settings'
+                  ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
               aria-label="设置"
-              type="button"
+              aria-current={pathname === '/settings' ? 'page' : undefined}
             >
               <span aria-hidden="true">⚙️</span>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

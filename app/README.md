@@ -1,5 +1,16 @@
 # AI 团队实时看板
 
+[![TypeDoc](https://img.shields.io/badge/TypeDoc-API%20Docs-blue)](./docs/api/)
+[![Storybook](https://img.shields.io/badge/Storybook-Components-ff4785)](./docs/storybook/)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+
+## 📚 文档资源
+
+- **[📖 API 文档](./docs/api/)** - TypeScript API 参考文档
+- **[🎨 组件库](./docs/storybook/)** - Storybook 组件展示
+- **[📝 完整文档](./DOCUMENTATION.md)** - 详细使用指南
+- **[🤝 贡献指南](./CONTRIBUTING.md)** - 如何参与开发
+
 ## 📁 目录结构
 
 ```
@@ -17,6 +28,20 @@ app/
 ```
 
 ## 🚀 快速开始
+
+### 0. 生成文档（可选）
+
+```bash
+# 生成所有文档（API 文档 + Storybook）
+npm run docs:build
+
+# 或分别生成
+npm run docs:api        # 生成 TypeDoc API 文档
+npm run storybook       # 启动 Storybook 开发服务器
+
+# 本地预览文档
+open docs/index.html
+```
 
 ### 1. 配置环境变量
 

@@ -136,6 +136,147 @@ curl -H "Authorization: token YOUR_GITHUB_TOKEN" \
 
 ## Web API
 
+### 认证 API
+
+#### 登录
+
+**端点**: `POST /api/auth/login`
+
+**请求体**:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "your-password"
+}
+```
+
+**响应示例** (200 OK):
+
+```json
+{
+  "message": "Login successful",
+  "user": {
+    "id": "123",
+    "email": "user@example.com",
+    "name": "用户名",
+    "role": "user"
+  }
+}
+```
+
+**错误响应**:
+
+| 状态码 | 说明 |
+|--------|------|
+| 400 | 邮箱或密码缺失 |
+| 401 | 凭据无效 |
+| 500 | 服务器内部错误 |
+
+---
+
+#### 注册
+
+**端点**: `POST /api/auth/register`
+
+**请求体**:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "your-password",
+  "name": "用户名"
+}
+```
+
+**密码要求**: 最少 6 个字符
+
+**响应示例** (200 OK):
+
+```json
+{
+  "message": "Registration successful",
+  "user": {
+    "id": "123",
+    "email": "user@example.com",
+    "name": "用户名",
+    "role": "user"
+  }
+}
+```
+
+**错误响应**:
+
+| 状态码 | 说明 |
+|--------|------|
+| 400 | 必填字段缺失或密码过短 |
+| 409 | 邮箱已被注册 |
+| 500 | 服务器内部错误 |
+
+---
+
+#### 获取当前用户
+
+**端点**: `GET /api/auth/me`
+
+**认证**: 需要 `auth-token` Cookie
+
+**响应示例** (200 OK):
+
+```json
+{
+  "userId": "123",
+  "email": "user@example.com",
+  "role": "user"
+}
+```
+
+**错误响应**:
+
+| 状态码 | 说明 |
+|--------|------|
+| 401 | 未认证 |
+
+---
+
+#### 登出
+
+**端点**: `POST /api/auth/logout`
+
+**响应**: 清除 `auth-token` Cookie
+
+---
+
+#### 受保护路由
+
+**端点**: `GET /api/protected`
+
+**认证**: 需要 `auth-token` Cookie
+
+**响应示例** (200 OK):
+
+```json
+{
+  "message": "This is a protected route",
+  "user": {
+    "userId": "123",
+    "email": "user@example.com",
+    "role": "user"
+  },
+  "data": {
+    "projects": ["7zi Studio", "AI Dashboard", "OpenClaw"],
+    "stats": {
+      "totalIssues": 42,
+      "openIssues": 12,
+      "closedIssues": 30,
+      "totalCommits": 156
+    }
+  }
+}
+```
+
+---
+
 ### Dashboard 数据接口
 
 项目使用 Next.js API 路由提供看板数据。
@@ -157,6 +298,29 @@ interface DashboardData {
   commits: GitHubCommit[];
   activities: ActivityItem[];
   lastUpdated: string;
+}
+```
+
+---
+
+### 认证机制
+
+项目使用 JWT Token 认证：
+
+- **Token 存储**: HttpOnly Cookie (`auth-token`)
+- **Token 有效期**: 7 天
+- **安全属性**: 
+  - `httpOnly: true` (防止 XSS)
+  - `secure: true` (生产环境 HTTPS)
+  - `sameSite: 'lax'` (CSRF 防护)
+
+**Token 载荷**:
+
+```typescript
+interface TokenPayload {
+  userId: string;
+  email: string;
+  role: string;
 }
 ```
 
