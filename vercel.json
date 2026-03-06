@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "name": "openclaw-workspace",
+  "builds": [
+    {
+      "src": "*.html",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "outputDirectory": "public",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
