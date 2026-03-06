@@ -38,11 +38,11 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
       {/* 看板头部 */}
-      <header className="px-6 py-4 border-b bg-gray-50">
+      <header className="px-6 py-4 border-b bg-gray-50 dark:bg-gray-700/50 transition-colors">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
             <span aria-hidden="true">📋</span> GitHub 任务
           </h2>
           <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
               id={filterId}
               value={filter}
               onChange={handleFilterChange}
-              className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 bg-white px-3 py-2"
+              className="text-sm border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:text-gray-200 px-3 py-2"
               aria-describedby="filter-description"
             >
               <option value="open">进行中</option>
@@ -74,7 +74,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
             showPercentage
             animated
           />
-          <div className="flex items-center justify-between text-xs text-gray-600">
+          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
             <span aria-label={`${stats.open} 个进行中的任务`}>
               <span aria-hidden="true">🟢</span> {stats.open} 进行中
             </span>
@@ -87,12 +87,12 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
 
       {/* 任务列表 */}
       <div 
-        className="divide-y max-h-[600px] overflow-y-auto"
+        className="divide-y divide-gray-200 dark:divide-gray-700 max-h-[600px] overflow-y-auto"
         role="list"
         aria-label="GitHub 任务列表"
       >
         {filteredIssues.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500" role="status">
+          <div className="px-6 py-12 text-center text-gray-500 dark:text-gray-400" role="status">
             <p className="text-lg mb-2" aria-hidden="true">📭</p>
             <p>暂无任务</p>
             <p className="text-sm mt-1">
@@ -108,7 +108,7 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
 
       {/* 底部统计 */}
       {filteredIssues.length > 0 && (
-        <footer className="px-6 py-3 border-t bg-gray-50 text-xs text-gray-600">
+        <footer className="px-6 py-3 border-t bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-600 dark:text-gray-400 transition-colors">
           显示 {filteredIssues.length} / {issues.length} 个任务
         </footer>
       )}
@@ -126,8 +126,8 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
   const stateColors = {
-    open: 'text-green-600 bg-green-50 border-green-200',
-    closed: 'text-gray-500 bg-gray-50 border-gray-200'
+    open: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
+    closed: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
   };
 
   const stateLabels = {
@@ -142,7 +142,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
 
   return (
     <article 
-      className="px-6 py-4 hover:bg-gray-50 transition-colors group focus-within:bg-gray-50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500"
+      className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group focus-within:bg-gray-50 dark:focus-within:bg-gray-700/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-blue-500"
       role="listitem"
       aria-labelledby={`issue-${issue.number}-title`}
     >
@@ -165,14 +165,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
               href={issue.html_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm font-medium text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
               aria-label={`issue #${issue.number}`}
             >
               #{issue.number}
             </a>
             <h3 
               id={`issue-${issue.number}-title`}
-              className="text-sm font-medium text-gray-900 truncate group-hover:text-blue-600 transition-colors"
+              className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
             >
               {issue.title}
             </h3>
@@ -195,7 +195,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
                 </span>
               ))}
               {issue.labels.length > 5 && (
-                <span className="text-xs text-gray-500" aria-label={`还有 ${issue.labels.length - 5} 个标签`}>
+                <span className="text-xs text-gray-500 dark:text-gray-400" aria-label={`还有 ${issue.labels.length - 5} 个标签`}>
                   +{issue.labels.length - 5}
                 </span>
               )}
@@ -203,7 +203,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
           )}
 
           {/* 元信息 */}
-          <div className="flex items-center gap-3 text-xs text-gray-600" role="group" aria-label="任务信息">
+          <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400" role="group" aria-label="任务信息">
             {issue.assignee && (
               <div className="flex items-center gap-1" aria-label={`指派给：${issue.assignee.login}`}>
                 <img
@@ -233,7 +233,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
             href={issue.html_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-blue-600 hover:text-blue-800 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
             aria-label={`在新窗口中查看任务 #${issue.number}`}
           >
             查看 →

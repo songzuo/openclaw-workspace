@@ -16,6 +16,13 @@ import { TaskBoard } from '../components/TaskBoard';
 import { ActivityLog } from '../components/ActivityLog';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { LoadingSpinner, LoadingContent } from '../components/Loading';
+import {
+  exportMembersCSV,
+  exportIssuesCSV,
+  exportCommitsCSV,
+  exportActivitiesCSV,
+  exportToPDF,
+} from '../lib/export';
 
 // ============================================================================
 // 类型定义
@@ -292,6 +299,47 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex items-center gap-3">
+              {/* 导出下拉菜单 */}
+              <div className="relative group">
+                <button className="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+                  📥 导出
+                </button>
+                {/* 下拉菜单 */}
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <button
+                    onClick={() => exportMembersCSV(AI_MEMBERS)}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 rounded-t-lg"
+                  >
+                    📊 导出成员 (CSV)
+                  </button>
+                  <button
+                    onClick={() => exportIssuesCSV(issues)}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                  >
+                    📋 导出 Issues (CSV)
+                  </button>
+                  <button
+                    onClick={() => exportCommitsCSV(commits)}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                  >
+                    💾 导出 Commits (CSV)
+                  </button>
+                  <button
+                    onClick={() => exportActivitiesCSV(activities)}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50"
+                  >
+                    📝 导出活动 (CSV)
+                  </button>
+                  <hr className="my-1" />
+                  <button
+                    onClick={() => exportToPDF(AI_MEMBERS, issues, commits, stats)}
+                    className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 rounded-b-lg text-green-700 font-medium"
+                  >
+                    📄 导出 PDF 报告
+                  </button>
+                </div>
+              </div>
+
               {/* 自动刷新开关 */}
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
                 <input
