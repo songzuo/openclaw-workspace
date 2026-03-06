@@ -39,7 +39,8 @@
 - [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) - 故障排查
 
 ### API 文档
-- [API-REFERENCE.md](./API-REFERENCE.md) - API 参考
+- [API-REFERENCE.md](./API-REFERENCE.md) - API 参考 🆕
+- [EXAMPLES.md](./EXAMPLES.md) - 使用示例 🆕
 - [WEBHOOKS.md](./WEBHOOKS.md) - Webhook 配置
 
 ---
