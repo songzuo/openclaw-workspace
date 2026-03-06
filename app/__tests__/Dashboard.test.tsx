@@ -10,7 +10,7 @@ vi.mock('@/lib/query', () => ({
 
 // Mock child components
 vi.mock('../components/MemberCard', () => ({
-  default: ({ member }: any) => (
+  MemberCard: ({ member }: any) => (
     <div data-testid="member-card">{member.name}</div>
   ),
 }));
@@ -46,6 +46,10 @@ vi.mock('../components/Loading', () => ({
   default: () => <div data-testid="loading">加载中...</div>,
 }));
 
+vi.mock('../components/ErrorBoundary', () => ({
+  default: ({ children }: any) => <div data-testid="error-boundary">{children}</div>,
+}));
+
 // Import mocked functions after vi.mock
 import { useDashboardQuery, useDashboardRefresh } from '@/lib/query';
 
@@ -59,7 +63,7 @@ describe('Dashboard Component', () => {
         id: '1',
         name: 'Test Member',
         role: 'Developer',
-        status: 'active' as const,
+        status: 'working' as const,
         completedTasks: 10,
         contributionScore: 100,
       },
@@ -70,6 +74,22 @@ describe('Dashboard Component', () => {
         status: 'idle' as const,
         completedTasks: 5,
         contributionScore: 50,
+      },
+    ],
+    issues: [
+      {
+        id: 't1',
+        title: 'Test Task',
+        assignee: 'Test Member',
+        status: 'in-progress' as const,
+        priority: 'high' as const,
+      },
+      {
+        id: 't2',
+        title: 'Done Task',
+        assignee: 'Another Member',
+        status: 'done' as const,
+        priority: 'medium' as const,
       },
     ],
     tasks: [

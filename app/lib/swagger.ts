@@ -4,7 +4,51 @@
 
 import { createSwaggerSpec } from 'next-swagger-doc';
 
-export const swaggerOptions = {
+export interface SwaggerDefinition {
+  openapi: string;
+  info: {
+    title: string;
+    version: string;
+    description: string;
+    contact: {
+      name: string;
+      email: string;
+    };
+    license: {
+      name: string;
+      url: string;
+    };
+  };
+  servers: Array<{
+    url: string;
+    description: string;
+  }>;
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: string;
+        scheme: string;
+        bearerFormat: string;
+      };
+    };
+    schemas: Record<string, {
+      type: string;
+      properties?: Record<string, unknown>;
+      required?: string[];
+    }>;
+  };
+  tags: Array<{
+    name: string;
+    description: string;
+  }>;
+}
+
+export interface SwaggerOptions {
+  definition: SwaggerDefinition;
+  apiFolder: string;
+}
+
+export const swaggerOptions: SwaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
@@ -258,6 +302,6 @@ export const swaggerOptions = {
   apiFolder: 'app/api',
 };
 
-export async function getApiDocs() {
-  return createSwaggerSpec(swaggerOptions);
+export async function getApiDocs(): Promise<SwaggerDefinition> {
+  return createSwaggerSpec(swaggerOptions) as Promise<SwaggerDefinition>;
 }

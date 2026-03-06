@@ -1,7 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import { ChartDataPoint, ChartContainer, ChartLegend } from './Chart';
+
+// ===== 性能优化: 常量配置移到组件外部 =====
+const DEFAULT_SIZE = 200;
+const DEFAULT_DONUT_WIDTH = 30;
+const PIE_ANIMATION_DELAY_BASE = 0.05;
 
 // ===== Pie Chart =====
 interface PieChartProps {
@@ -16,22 +21,43 @@ interface PieChartProps {
   animate?: boolean;
 }
 
-export function PieChart({
+/**
+ * PieChart 组件 - 饼图/环形图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存 total 和 segments 计算 - 避免重复计算
+ * 3. useCallback 缓存 hover 事件处理 - 避免函数重建
+ * 4. 常量配置外部化 - 减少每次渲染的对象创建
+ */
+function PieChartComponent({
   data,
   title,
   subtitle,
-  size = 200,
+  size = DEFAULT_SIZE,
   donut = false,
-  donutWidth = 30,
+  donutWidth = DEFAULT_DONUT_WIDTH,
   showLabels = true,
   showPercentage = true,
   animate = true,
 }: PieChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const total = useMemo(() => data.reduce((sum, d) => sum + d.value, 0), [data]);
+  // 性能优化: useMemo 缓存 total 计算，仅在 data 变化时重新计算
+  const total = useMemo(() => {
+    if (!data || !Array.isArray(data)) return 0;
+    return data.reduce((sum, d) => sum + (d?.value ?? 0), 0);
+  }, [data]);
 
+  // 性能优化: useMemo 缓存 segments 计算，避免每次渲染重新计算路径
   const { segments, center } = useMemo(() => {
+    if (!data || !Array.isArray(data)) {
+      return {
+        segments: [],
+        center: { x: size / 2, y: size / 2 }
+      };
+    }
+
     const cx = size / 2;
     const cy = size / 2;
     const radius = donut ? (size / 2) - (donutWidth / 2) : (size / 2) - 10;
@@ -40,7 +66,8 @@ export function PieChart({
     let currentAngle = -90; // Start from top
 
     const segs = data.map((item, index) => {
-      const percentage = total > 0 ? (item.value / total) * 100 : 0;
+      const itemValue = item?.value ?? 0;
+      const percentage = total > 0 ? (itemValue / total) * 100 : 0;
       const angle = (percentage / 100) * 360;
       const startAngle = currentAngle;
       const endAngle = currentAngle + angle;
@@ -76,10 +103,10 @@ export function PieChart({
 
       return {
         path,
-        color: item.color || `hsl(${(index * 45) % 360}, 70%, 60%)`,
+        color: item?.color || `hsl(${(index * 45) % 360}, 70%, 60%)`,
         percentage,
-        value: item.value,
-        label: item.label,
+        value: itemValue,
+        label: item?.label,
         labelX,
         labelY,
         startAngle,
@@ -89,6 +116,15 @@ export function PieChart({
 
     return { segments: segs, center: { x: cx, y: cy } };
   }, [data, size, donut, donutWidth, total]);
+
+  // 性能优化: useCallback 缓存 hover 事件处理函数
+  const handleMouseEnter = useCallback((index: number) => {
+    setHoveredIndex(index);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+  }, []);
 
   return (
     <ChartContainer title={title} subtitle={subtitle}>
@@ -107,8 +143,8 @@ export function PieChart({
                   transformOrigin: `${center.x}px ${center.y}px`,
                   transform: hoveredIndex === index ? 'scale(1.05)' : 'scale(1)',
                 }}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
+                onMouseEnter={() => handleMouseEnter(index)}
+                onMouseLeave={handleMouseLeave}
               />
               {/* Label */}
               {showLabels && segment.percentage > 5 && (
@@ -151,8 +187,8 @@ export function PieChart({
               className={`flex items-center gap-2 cursor-pointer transition-opacity ${
                 hoveredIndex !== null && hoveredIndex !== index ? 'opacity-50' : 'opacity-100'
               }`}
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
+              onMouseEnter={() => handleMouseEnter(index)}
+              onMouseLeave={handleMouseLeave}
             >
               <div
                 className="w-3 h-3 rounded-sm flex-shrink-0"
@@ -183,6 +219,7 @@ export function PieChart({
         }
         .animate-pie-grow {
           animation: pie-grow 0.5s ease-out forwards;
+          animation-delay: ${PIE_ANIMATION_DELAY_BASE}s;
           transform-origin: center;
         }
       `}</style>
@@ -190,10 +227,13 @@ export function PieChart({
   );
 }
 
+// 性能优化: 使用 React.memo 包装组件，避免不必要的重渲染
+export const PieChart = memo(PieChartComponent);
+
 // ===== Donut Chart (alias) =====
-export const DonutChart = (props: Omit<PieChartProps, 'donut'>) => (
+export const DonutChart = memo((props: Omit<PieChartProps, 'donut'>) => (
   <PieChart {...props} donut />
-);
+));
 
 // ===== Gauge Chart =====
 interface GaugeChartProps {
@@ -208,12 +248,19 @@ interface GaugeChartProps {
   unit?: string;
 }
 
-export function GaugeChart({
+/**
+ * GaugeChart 组件 - 仪表盘图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存颜色和路径计算 - 避免重复计算
+ */
+function GaugeChartComponent({
   value,
   max,
   title,
   subtitle,
-  size = 200,
+  size = DEFAULT_SIZE,
   color = '#3b82f6',
   thresholds,
   showValue = true,
@@ -221,7 +268,7 @@ export function GaugeChart({
 }: GaugeChartProps) {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
 
-  // Determine color based on thresholds
+  // 性能优化: useMemo 缓存颜色计算
   const activeColor = useMemo(() => {
     if (!thresholds) return color;
     const sortedThresholds = [...thresholds].sort((a, b) => b.value - a.value);
@@ -231,6 +278,7 @@ export function GaugeChart({
     return color;
   }, [thresholds, percentage, color]);
 
+  // 性能优化: useMemo 缓存路径计算
   const { arcPath, needleRotation } = useMemo(() => {
     const cx = size / 2;
     const cy = size / 2;
@@ -334,3 +382,6 @@ export function GaugeChart({
     </ChartContainer>
   );
 }
+
+// 性能优化: 使用 React.memo 包装组件
+export const GaugeChart = memo(GaugeChartComponent);

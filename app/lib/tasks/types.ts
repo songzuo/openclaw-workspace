@@ -16,6 +16,21 @@ export type TaskPriority = 'high' | 'medium' | 'low';
  */
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 
+// 优先级常量（用于测试和比较）
+export const TaskPriority = {
+  HIGH: 'high' as const,
+  MEDIUM: 'medium' as const,
+  LOW: 'low' as const,
+};
+
+// 状态常量（用于测试和比较）
+export const TaskStatus = {
+  TODO: 'todo' as const,
+  IN_PROGRESS: 'in_progress' as const,
+  REVIEW: 'review' as const,
+  DONE: 'done' as const,
+};
+
 /**
  * 任务标签接口
  * @interface TaskTag

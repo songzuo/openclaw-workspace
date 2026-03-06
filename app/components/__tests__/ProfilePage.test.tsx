@@ -123,10 +123,13 @@ describe('ProfilePage', () => {
 
       render(<ProfilePage userId="user_123" />);
 
-      await waitFor(() => {
-        const avatar = screen.getByAltText('头像') as HTMLImageElement;
-        expect(avatar.src).toContain('dicebear');
+      // 推进定时器让 fetch 完成
+      await act(async () => {
+        await vi.runAllTimersAsync();
       });
+
+      const avatar = screen.getByAltText('头像') as HTMLImageElement;
+      expect(avatar.src).toContain('dicebear');
     });
 
     it('应正确显示自定义头像', async () => {

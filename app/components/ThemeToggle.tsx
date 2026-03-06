@@ -40,8 +40,9 @@ export function ThemeToggle({
   enableRipple = true,
   size = 'md',
 }: ThemeToggleProps) {
-  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
+  const { theme, resolvedTheme, isTransitioning, setTheme, toggleTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -82,7 +83,13 @@ export function ThemeToggle({
   // 切换主题（简单模式）
   const handleToggle = useCallback((e: React.MouseEvent) => {
     createRipple(e);
+    setIsAnimating(true);
     toggleTheme();
+    
+    // 动画完成后重置
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 300);
   }, [createRipple, toggleTheme]);
 
   // 选择主题（下拉菜单模式）
@@ -168,12 +175,20 @@ export function ThemeToggle({
           rounded-lg transition-all duration-200
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900
           active:scale-95
+          ${isAnimating ? 'theme-toggle-animating' : ''}
         `}
         aria-label={resolvedTheme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
         title={resolvedTheme === 'light' ? '切换到深色模式' : '切换到浅色模式'}
         type="button"
       >
-        <span className="block transition-transform duration-300 hover:rotate-12" aria-hidden="true">
+        <span 
+          className={`
+            block transition-transform duration-300 
+            hover:rotate-12
+            ${isAnimating ? 'theme-icon-spin' : ''}
+          `} 
+          aria-hidden="true"
+        >
           {resolvedTheme === 'light' ? '🌙' : '☀️'}
         </span>
       </button>

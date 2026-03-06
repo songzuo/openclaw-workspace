@@ -49,12 +49,15 @@ export const Navigation: React.FC = () => {
   const pathname = usePathname();
   const { toggleTheme, resolvedTheme } = useTheme();
 
+  // 获取基础路径（不含 query string），用于高亮当前页面
+  const basePath = pathname?.split('?')[0] || pathname;
+
   // 键盘导航处理
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     const items = NAV_ITEMS.length;
 
     switch (e.key) {
-      case 'ArrowRight':
+      case 'ArrowRight': {
         e.preventDefault();
         const nextIndex = (index + 1) % items;
         const nextLink = document.querySelector(
@@ -62,7 +65,8 @@ export const Navigation: React.FC = () => {
         ) as HTMLAnchorElement;
         nextLink?.focus();
         break;
-      case 'ArrowLeft':
+      }
+      case 'ArrowLeft': {
         e.preventDefault();
         const prevIndex = (index - 1 + items) % items;
         const prevLink = document.querySelector(
@@ -70,18 +74,21 @@ export const Navigation: React.FC = () => {
         ) as HTMLAnchorElement;
         prevLink?.focus();
         break;
-      case 'Home':
+      }
+      case 'Home': {
         e.preventDefault();
         const firstLink = document.querySelector('[data-nav-index="0"]') as HTMLAnchorElement;
         firstLink?.focus();
         break;
-      case 'End':
+      }
+      case 'End': {
         e.preventDefault();
         const lastLink = document.querySelector(
           `[data-nav-index="${items - 1}"]`
         ) as HTMLAnchorElement;
         lastLink?.focus();
         break;
+      }
     }
   };
 
@@ -114,14 +121,14 @@ export const Navigation: React.FC = () => {
                 data-nav-index={index}
                 role="menuitem"
                 tabIndex={0}
-                aria-current={pathname === item.href ? 'page' : undefined}
-                aria-label={`${item.label}${pathname === item.href ? '（当前页面）' : ''}`}
+                aria-current={basePath === item.href ? 'page' : undefined}
+                aria-label={`${item.label}${basePath === item.href ? '（当前页面）' : ''}`}
                 className={`
                   px-4 py-2 rounded-lg text-sm font-medium transition-colors
                   flex items-center gap-2
                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900
                   ${
-                    pathname === item.href
+                    basePath === item.href
                       ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                   }
@@ -148,12 +155,12 @@ export const Navigation: React.FC = () => {
             <Link
               href="/settings"
               className={`p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                pathname === '/settings'
+                basePath === '/settings'
                   ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                   : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`}
               aria-label="设置"
-              aria-current={pathname === '/settings' ? 'page' : undefined}
+              aria-current={basePath === '/settings' ? 'page' : undefined}
             >
               <span aria-hidden="true">⚙️</span>
             </Link>

@@ -135,3 +135,35 @@ export function reportPerformanceMetrics(componentName: string, metrics: Perform
     });
   }
 }
+
+/**
+ * 性能监控 Hook (默认导出，用于测试)
+ * 返回性能指标和辅助函数
+ */
+export function usePerformance() {
+  const [metrics, setMetrics] = useState<PerformanceMetrics>({
+    renderCount: 0,
+    averageRenderTime: 0,
+    lastRenderTime: 0,
+    totalRenderTime: 0,
+  });
+
+  const measureRender = useCallback((componentName: string) => {
+    const start = performance.now();
+    return () => {
+      const end = performance.now();
+      const renderTime = end - start;
+      setMetrics(prev => ({
+        renderCount: prev.renderCount + 1,
+        averageRenderTime: (prev.totalRenderTime + renderTime) / (prev.renderCount + 1),
+        lastRenderTime: renderTime,
+        totalRenderTime: prev.totalRenderTime + renderTime,
+      }));
+    };
+  }, []);
+
+  return {
+    metrics,
+    measureRender,
+  };
+}

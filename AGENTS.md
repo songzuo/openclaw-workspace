@@ -66,6 +66,17 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - Anything that leaves the machine
 - Anything you're uncertain about
 
+## 📄 重要文档
+
+项目相关的重要文档：
+
+- `README.md` - 项目介绍和快速开始
+- `CHANGELOG.md` - 版本变更日志
+- `DEPLOYMENT.md` - 部署指南
+- `DAILY-DEVELOPMENT-REPORT.md` - 每日开发报告
+- `REACT_OPTIMIZATION_SUMMARY.md` - React 性能优化总结
+- `docs/` - 详细文档目录
+
 ## Group Chats
 
 You have access to your human's stuff. That doesn't mean you _share_ their stuff. In groups, you're a participant — not their voice, not their proxy. Think before you speak.

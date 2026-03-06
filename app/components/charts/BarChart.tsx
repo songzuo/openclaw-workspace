@@ -1,7 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import { ChartDataPoint, ChartContainer, ChartLegend, CHART_COLORS } from './Chart';
+
+// ===== 性能优化: 常量配置移到组件外部 =====
+const DEFAULT_HEIGHT = 300;
+const DEFAULT_GROUPED_HEIGHT = 350;
+const GRID_LINES_COUNT = 5;
+const BAR_WIDTH_RATIO = 0.7;
+const BAR_GAP_RATIO = 0.3;
 
 interface BarChartProps {
   data: ChartDataPoint[];
@@ -14,50 +21,106 @@ interface BarChartProps {
   animate?: boolean;
 }
 
-export function BarChart({
+/**
+ * BarChart 组件 - 柱状图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存数值计算 - 避免重复计算
+ * 3. useCallback 缓存 hover 事件处理 - 避免函数重建
+ * 4. 常量配置外部化 - 减少每次渲染的对象创建
+ */
+function BarChartComponent({
   data,
   title,
   subtitle,
-  height = 300,
+  height = DEFAULT_HEIGHT,
   showLegend = false,
   horizontal = false,
   animate = true,
 }: BarChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  // 性能优化: useMemo 缓存统计值计算
   const { maxValue, total } = useMemo(() => {
     const max = Math.max(...data.map((d) => d.value));
     const sum = data.reduce((acc, d) => acc + d.value, 0);
     return { maxValue: max || 1, total: sum };
   }, [data]);
 
-  const chartDimensions = {
+  // 性能优化: useMemo 缓存图表配置
+  const chartConfig = useMemo(() => ({
     width: horizontal ? 500 : 400,
     height,
     padding: { top: 20, right: 30, bottom: horizontal ? 60 : 40, left: horizontal ? 80 : 60 },
-  };
+  }), [height, horizontal]);
 
-  const chartWidth = chartDimensions.width - chartDimensions.padding.left - chartDimensions.padding.right;
-  const chartHeight = chartDimensions.height - chartDimensions.padding.top - chartDimensions.padding.bottom;
+  const chartWidth = chartConfig.width - chartConfig.padding.left - chartConfig.padding.right;
+  const chartHeight = chartConfig.height - chartConfig.padding.top - chartConfig.padding.bottom;
 
-  const yLabels = [maxValue, Math.round(maxValue * 0.75), Math.round(maxValue * 0.5), Math.round(maxValue * 0.25), 0];
+  // 性能优化: useMemo 缓存 Y 轴标签
+  const yLabels = useMemo(() => [
+    maxValue,
+    Math.round(maxValue * 0.75),
+    Math.round(maxValue * 0.5),
+    Math.round(maxValue * 0.25),
+    0
+  ], [maxValue]);
+
+  // 性能优化: useCallback 缓存 hover 事件处理函数
+  const handleMouseEnter = useCallback((index: number) => {
+    setHoveredIndex(index);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+  }, []);
+
+  // 性能优化: useMemo 缓存柱状图数据
+  const barData = useMemo(() => {
+    return data.map((item, index) => {
+      const barWidth = chartWidth / data.length * BAR_WIDTH_RATIO;
+      const gap = chartWidth / data.length * BAR_GAP_RATIO;
+      const barHeight = (item.value / maxValue) * chartHeight;
+      const x = chartConfig.padding.left + (chartWidth / data.length) * index + gap / 2;
+      const y = chartConfig.padding.top + chartHeight - barHeight;
+      const color = item.color || CHART_COLORS.blue;
+
+      return {
+        x,
+        y,
+        barWidth,
+        barHeight,
+        color,
+        value: item.value,
+        label: item.label,
+        index,
+      };
+    });
+  }, [data, chartWidth, chartHeight, chartConfig, maxValue]);
+
+  // 性能优化: useMemo 缓存图例项
+  const legendItems = useMemo(() => 
+    data.map((d) => ({ label: d.label, color: d.color || CHART_COLORS.blue })),
+    [data]
+  );
 
   return (
     <ChartContainer title={title} subtitle={subtitle}>
       <svg
         width="100%"
         height={height}
-        viewBox={`0 0 ${chartDimensions.width} ${chartDimensions.height}`}
+        viewBox={`0 0 ${chartConfig.width} ${chartConfig.height}`}
         className="overflow-visible"
       >
         {/* Grid lines */}
         {yLabels.map((_, i) => (
           <line
             key={i}
-            x1={chartDimensions.padding.left}
-            y1={chartDimensions.padding.top + (chartHeight / 4) * i}
-            x2={chartDimensions.width - chartDimensions.padding.right}
-            y2={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x1={chartConfig.padding.left}
+            y1={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            x2={chartConfig.width - chartConfig.padding.right}
+            y2={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
             stroke="currentColor"
             className="text-gray-200 dark:text-gray-700"
             strokeDasharray="4,4"
@@ -68,8 +131,8 @@ export function BarChart({
         {yLabels.map((label, i) => (
           <text
             key={i}
-            x={chartDimensions.padding.left - 10}
-            y={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x={chartConfig.padding.left - 10}
+            y={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
             textAnchor="end"
             alignmentBaseline="middle"
             className="fill-gray-500 dark:fill-gray-400 text-xs"
@@ -79,62 +142,50 @@ export function BarChart({
         ))}
 
         {/* Bars */}
-        {data.map((item, index) => {
-          const barWidth = chartWidth / data.length * 0.7;
-          const gap = chartWidth / data.length * 0.3;
-          const barHeight = (item.value / maxValue) * chartHeight;
-          const x = chartDimensions.padding.left + (chartWidth / data.length) * index + gap / 2;
-          const y = chartDimensions.padding.top + chartHeight - barHeight;
-          const color = item.color || CHART_COLORS.blue;
-
-          return (
-            <g key={index}>
-              <rect
-                x={x}
-                y={y}
-                width={barWidth}
-                height={barHeight}
-                fill={color}
-                rx={4}
-                className={`transition-all duration-300 ${animate ? 'animate-grow-up' : ''} ${
-                  hoveredIndex === index ? 'opacity-100 brightness-110' : 'opacity-90'
-                }`}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                style={{
-                  transformOrigin: `${x + barWidth / 2}px ${chartDimensions.padding.top + chartHeight}px`,
-                }}
-              />
-              {/* Value label on hover */}
-              {hoveredIndex === index && (
-                <text
-                  x={x + barWidth / 2}
-                  y={y - 8}
-                  textAnchor="middle"
-                  className="fill-gray-900 dark:fill-white text-sm font-semibold"
-                >
-                  {item.value}
-                </text>
-              )}
-              {/* X-axis label */}
+        {barData.map((bar) => (
+          <g key={bar.index}>
+            <rect
+              x={bar.x}
+              y={bar.y}
+              width={bar.barWidth}
+              height={bar.barHeight}
+              fill={bar.color}
+              rx={4}
+              className={`transition-all duration-300 ${animate ? 'animate-grow-up' : ''} ${
+                hoveredIndex === bar.index ? 'opacity-100 brightness-110' : 'opacity-90'
+              }`}
+              onMouseEnter={() => handleMouseEnter(bar.index)}
+              onMouseLeave={handleMouseLeave}
+              style={{
+                transformOrigin: `${bar.x + bar.barWidth / 2}px ${chartConfig.padding.top + chartHeight}px`,
+              }}
+            />
+            {/* Value label on hover */}
+            {hoveredIndex === bar.index && (
               <text
-                x={x + barWidth / 2}
-                y={chartDimensions.height - chartDimensions.padding.bottom + 20}
+                x={bar.x + bar.barWidth / 2}
+                y={bar.y - 8}
                 textAnchor="middle"
-                className="fill-gray-500 dark:fill-gray-400 text-xs"
+                className="fill-gray-900 dark:fill-white text-sm font-semibold"
               >
-                {item.label.length > 8 ? item.label.slice(0, 8) + '...' : item.label}
+                {bar.value}
               </text>
-            </g>
-          );
-        })}
+            )}
+            {/* X-axis label */}
+            <text
+              x={bar.x + bar.barWidth / 2}
+              y={chartConfig.height - chartConfig.padding.bottom + 20}
+              textAnchor="middle"
+              className="fill-gray-500 dark:fill-gray-400 text-xs"
+            >
+              {bar.label.length > 8 ? bar.label.slice(0, 8) + '...' : bar.label}
+            </text>
+          </g>
+        ))}
       </svg>
 
       {showLegend && (
-        <ChartLegend
-          items={data.map((d) => ({ label: d.label, color: d.color || CHART_COLORS.blue }))}
-          position="bottom"
-        />
+        <ChartLegend items={legendItems} position="bottom" />
       )}
 
       {/* Summary */}
@@ -160,6 +211,9 @@ export function BarChart({
   );
 }
 
+// 性能优化: 使用 React.memo 包装组件
+export const BarChart = memo(BarChartComponent);
+
 // ===== Grouped Bar Chart =====
 interface GroupedBarChartProps {
   categories: string[];
@@ -173,41 +227,91 @@ interface GroupedBarChartProps {
   height?: number;
 }
 
-export function GroupedBarChart({ categories, series, title, subtitle, height = 350 }: GroupedBarChartProps) {
+/**
+ * GroupedBarChart 组件 - 分组柱状图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存数值计算和布局 - 避免重复计算
+ * 3. useCallback 缓存 hover 事件处理 - 避免函数重建
+ */
+function GroupedBarChartComponent({ categories, series, title, subtitle, height = DEFAULT_GROUPED_HEIGHT }: GroupedBarChartProps) {
   const [hoveredBar, setHoveredBar] = useState<{ catIndex: number; seriesIndex: number } | null>(null);
 
+  // 性能优化: useMemo 缓存最大值计算
   const maxValue = useMemo(() => {
     const allValues = series.flatMap((s) => s.data);
     return Math.max(...allValues) || 1;
   }, [series]);
 
-  const chartDimensions = {
+  // 性能优化: useMemo 缓存图表配置
+  const chartConfig = useMemo(() => ({
     width: 500,
     height,
     padding: { top: 30, right: 30, bottom: 60, left: 60 },
-  };
+  }), [height]);
 
-  const chartWidth = chartDimensions.width - chartDimensions.padding.left - chartDimensions.padding.right;
-  const chartHeight = chartDimensions.height - chartDimensions.padding.top - chartDimensions.padding.bottom;
+  const chartWidth = chartConfig.width - chartConfig.padding.left - chartConfig.padding.right;
+  const chartHeight = chartConfig.height - chartConfig.padding.top - chartConfig.padding.bottom;
   const groupWidth = chartWidth / categories.length;
   const barWidth = (groupWidth * 0.8) / series.length;
+
+  // 性能优化: useCallback 缓存 hover 事件处理函数
+  const handleMouseEnter = useCallback((catIndex: number, seriesIndex: number) => {
+    setHoveredBar({ catIndex, seriesIndex });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredBar(null);
+  }, []);
+
+  // 性能优化: useMemo 缓存 Y 轴标签
+  const yLabels = useMemo(() => [
+    maxValue,
+    Math.round(maxValue * 0.75),
+    Math.round(maxValue * 0.5),
+    Math.round(maxValue * 0.25),
+    0
+  ], [maxValue]);
+
+  // 性能优化: useMemo 缓存图例项
+  const legendItems = useMemo(() => 
+    series.map((s) => ({ label: s.name, color: s.color || CHART_COLORS.blue })),
+    [series]
+  );
+
+  // 性能优化: useMemo 缓存柱状图位置数据
+  const barsData = useMemo(() => {
+    return categories.map((category, catIndex) => ({
+      category,
+      catIndex,
+      bars: series.map((s, seriesIndex) => ({
+        barHeight: (s.data[catIndex] / maxValue) * chartHeight,
+        x: chartConfig.padding.left + groupWidth * catIndex + (groupWidth * 0.1) + barWidth * seriesIndex,
+        y: chartConfig.padding.top + chartHeight - (s.data[catIndex] / maxValue) * chartHeight,
+        color: s.color || CHART_COLORS.blue,
+        seriesIndex,
+        catIndex,
+      })),
+    }));
+  }, [categories, series, maxValue, chartConfig, chartHeight, groupWidth, barWidth]);
 
   return (
     <ChartContainer title={title} subtitle={subtitle}>
       <svg
         width="100%"
         height={height}
-        viewBox={`0 0 ${chartDimensions.width} ${chartDimensions.height}`}
+        viewBox={`0 0 ${chartConfig.width} ${chartConfig.height}`}
         className="overflow-visible"
       >
         {/* Grid lines */}
-        {[0, 1, 2, 3, 4].map((i) => (
+        {Array.from({ length: GRID_LINES_COUNT }).map((_, i) => (
           <line
             key={i}
-            x1={chartDimensions.padding.left}
-            y1={chartDimensions.padding.top + (chartHeight / 4) * i}
-            x2={chartDimensions.width - chartDimensions.padding.right}
-            y2={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x1={chartConfig.padding.left}
+            y1={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            x2={chartConfig.width - chartConfig.padding.right}
+            y2={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
             stroke="currentColor"
             className="text-gray-200 dark:text-gray-700"
             strokeDasharray="4,4"
@@ -215,64 +319,59 @@ export function GroupedBarChart({ categories, series, title, subtitle, height = 
         ))}
 
         {/* Y-axis labels */}
-        {[maxValue, Math.round(maxValue * 0.75), Math.round(maxValue * 0.5), Math.round(maxValue * 0.25), 0].map(
-          (label, i) => (
-            <text
-              key={i}
-              x={chartDimensions.padding.left - 10}
-              y={chartDimensions.padding.top + (chartHeight / 4) * i}
-              textAnchor="end"
-              alignmentBaseline="middle"
-              className="fill-gray-500 dark:fill-gray-400 text-xs"
-            >
-              {label}
-            </text>
-          )
-        )}
+        {yLabels.map((label, i) => (
+          <text
+            key={i}
+            x={chartConfig.padding.left - 10}
+            y={chartConfig.padding.top + (chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            textAnchor="end"
+            alignmentBaseline="middle"
+            className="fill-gray-500 dark:fill-gray-400 text-xs"
+          >
+            {label}
+          </text>
+        ))}
 
         {/* Bars */}
-        {categories.map((category, catIndex) => (
-          <g key={catIndex}>
-            {series.map((s, seriesIndex) => {
-              const barHeight = (s.data[catIndex] / maxValue) * chartHeight;
-              const x = chartDimensions.padding.left + groupWidth * catIndex + (groupWidth * 0.1) + barWidth * seriesIndex;
-              const y = chartDimensions.padding.top + chartHeight - barHeight;
+        {barsData.map((group) => (
+          <g key={group.catIndex}>
+            {group.bars.map((bar) => {
               const isHovered =
-                hoveredBar?.catIndex === catIndex && hoveredBar?.seriesIndex === seriesIndex;
+                hoveredBar?.catIndex === bar.catIndex && hoveredBar?.seriesIndex === bar.seriesIndex;
 
               return (
                 <rect
-                  key={seriesIndex}
-                  x={x}
-                  y={y}
+                  key={bar.seriesIndex}
+                  x={bar.x}
+                  y={bar.y}
                   width={barWidth - 2}
-                  height={barHeight}
-                  fill={s.color || CHART_COLORS.blue}
+                  height={bar.barHeight}
+                  fill={bar.color}
                   rx={3}
                   className={`transition-all duration-200 ${isHovered ? 'brightness-110' : 'opacity-90'}`}
-                  onMouseEnter={() => setHoveredBar({ catIndex, seriesIndex })}
-                  onMouseLeave={() => setHoveredBar(null)}
+                  onMouseEnter={() => handleMouseEnter(bar.catIndex, bar.seriesIndex)}
+                  onMouseLeave={handleMouseLeave}
                 />
               );
             })}
             {/* Category label */}
             <text
-              x={chartDimensions.padding.left + groupWidth * catIndex + groupWidth / 2}
-              y={chartDimensions.height - chartDimensions.padding.bottom + 20}
+              x={chartConfig.padding.left + groupWidth * group.catIndex + groupWidth / 2}
+              y={chartConfig.height - chartConfig.padding.bottom + 20}
               textAnchor="middle"
               className="fill-gray-500 dark:fill-gray-400 text-xs"
             >
-              {category.length > 8 ? category.slice(0, 8) + '...' : category}
+              {group.category.length > 8 ? group.category.slice(0, 8) + '...' : group.category}
             </text>
           </g>
         ))}
       </svg>
 
       {/* Legend */}
-      <ChartLegend
-        items={series.map((s) => ({ label: s.name, color: s.color || CHART_COLORS.blue }))}
-        position="bottom"
-      />
+      <ChartLegend items={legendItems} position="bottom" />
     </ChartContainer>
   );
 }
+
+// 性能优化: 使用 React.memo 包装组件
+export const GroupedBarChart = memo(GroupedBarChartComponent);

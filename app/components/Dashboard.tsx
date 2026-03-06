@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { MemberCard } from './MemberCard';
 import { TaskBoard } from './TaskBoard';
 import { ActivityLog } from './ActivityLog';
@@ -25,6 +25,46 @@ export interface TeamMember {
   contributionScore: number;
 }
 
+// ============================================================================
+// StatsCard 组件 - 优化: 移到 Dashboard 外部并用 React.memo 包装
+// ============================================================================
+
+interface StatsCardProps {
+  icon: string;
+  label: string;
+  value: string | number;
+  color: 'blue' | 'green' | 'purple' | 'orange';
+}
+
+// 颜色配置 - 移到组件外部
+const STATS_CARD_COLORS = {
+  blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+  green: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
+  purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
+} as const;
+
+// 优化: 用 React.memo 包装 StatsCard 避免不必要的重渲染
+const StatsCard = memo(function StatsCard({ icon, label, value, color }: StatsCardProps) {
+  const colorClasses = STATS_CARD_COLORS[color];
+
+  return (
+    <div className={`rounded-lg border-2 p-4 ${colorClasses} transition-colors`}>
+      <div className="flex items-center gap-3">
+        <div className="text-3xl" aria-hidden="true">{icon}</div>
+        <div>
+          <div className="text-sm font-medium opacity-75">{label}</div>
+          <div className="text-2xl font-bold">{value}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// ============================================================================
+// Dashboard 组件
+// ============================================================================
+
 export default function Dashboard() {
   const [refreshInterval, setRefreshInterval] = useState(60000); // 默认 60 秒
 
@@ -37,10 +77,19 @@ export default function Dashboard() {
   // 手动刷新 Hook
   const { refresh: manualRefresh } = useDashboardRefresh();
 
-  // 手动刷新按钮
-  const handleRefresh = () => {
+  // 使用 useCallback 缓存事件处理
+  const handleRefresh = useCallback(() => {
     manualRefresh();
-  };
+  }, [manualRefresh]);
+
+  const handleIntervalChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    setRefreshInterval(Number(e.target.value));
+  }, []);
+
+  // 使用 useCallback 缓存重试处理
+  const handleRetry = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   // 将 AIMember 转换为 TeamMember 格式（用于 ContributionChart）
   const teamMembers = useMemo(() => {
@@ -73,7 +122,7 @@ export default function Dashboard() {
             {error instanceof Error ? error.message : 'An error occurred'}
           </p>
           <button
-            onClick={() => refetch()}
+            onClick={handleRetry}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             重试
@@ -85,7 +134,11 @@ export default function Dashboard() {
 
   if (!data) return null;
 
-  const completionRate = (data.stats.completedTasks / data.stats.totalTasks) * 100;
+  // 优化: 使用 useMemo 缓存计算结果
+  const completionRate = useMemo(
+    () => (data.stats.completedTasks / data.stats.totalTasks) * 100,
+    [data.stats.completedTasks, data.stats.totalTasks]
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -110,7 +163,7 @@ export default function Dashboard() {
               </div>
               <select
                 value={refreshInterval}
-                onChange={(e) => setRefreshInterval(Number(e.target.value))}
+                onChange={handleIntervalChange}
                 className="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1
                   bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
@@ -225,34 +278,6 @@ export default function Dashboard() {
             <ContributionChart members={teamMembers} />
           </ErrorBoundary>
         </section>
-      </div>
-    </div>
-  );
-}
-
-interface StatsCardProps {
-  icon: string;
-  label: string;
-  value: string | number;
-  color: 'blue' | 'green' | 'purple' | 'orange';
-}
-
-function StatsCard({ icon, label, value, color }: StatsCardProps) {
-  const colorClasses = {
-    blue: 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-    green: 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
-    purple: 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-    orange: 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
-  };
-
-  return (
-    <div className={`rounded-lg border-2 p-4 ${colorClasses[color]} transition-colors`}>
-      <div className="flex items-center gap-3">
-        <div className="text-3xl" aria-hidden="true">{icon}</div>
-        <div>
-          <div className="text-sm font-medium opacity-75">{label}</div>
-          <div className="text-2xl font-bold">{value}</div>
-        </div>
       </div>
     </div>
   );

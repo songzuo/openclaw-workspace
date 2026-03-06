@@ -22,6 +22,8 @@ const mockContext = {
     addColorStop: vi.fn(),
   })),
   measureText: vi.fn(() => ({ width: 0 })),
+  fillText: vi.fn(),
+  strokeText: vi.fn(),
 };
 
 HTMLCanvasElement.prototype.getContext = vi.fn(() => mockContext) as any;

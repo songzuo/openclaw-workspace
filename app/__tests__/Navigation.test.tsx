@@ -88,21 +88,20 @@ describe('Navigation', () => {
 
   it('renders all navigation items', () => {
     renderWithProviders(<Navigation />);
-    // 使用 getAllByText 并检查长度
-    expect(screen.getAllByText('🏠').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('📊').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('🤖').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('📋').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('🧠').length).toBeGreaterThan(0);
+    // 检查导航图标存在 - 组件有 6 个导航项
+    const menuItems = screen.getAllByRole('menuitem');
+    expect(menuItems.length).toBe(6);
   });
 
   it('renders navigation labels', () => {
     renderWithProviders(<Navigation />);
+    // 检查导航标签存在
     expect(screen.getAllByText('首页').length).toBeGreaterThan(0);
     expect(screen.getAllByText('实时看板').length).toBeGreaterThan(0);
     expect(screen.getAllByText('子代理').length).toBeGreaterThan(0);
     expect(screen.getAllByText('任务').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('记忆').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('个人资料').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('设置').length).toBeGreaterThan(0);
   });
 
   it('renders logo with correct aria-label', () => {

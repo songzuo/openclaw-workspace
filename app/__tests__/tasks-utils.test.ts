@@ -8,7 +8,7 @@ import {
   formatDueDate,
   validateTask,
 } from '../lib/tasks/utils';
-import { Task, TaskPriority, TaskStatus, DEFAULT_TAGS } from '../lib/tasks/types';
+import { Task, DEFAULT_TAGS } from '../lib/tasks/types';
 
 // 测试数据
 const createMockTask = (overrides?: Partial<Task>): Task => ({

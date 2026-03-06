@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BarChart, GroupedBarChart } from '../components/charts/BarChart';
 import { LineChart, RealtimeLineChart, MultiLineChart } from '../components/charts/LineChart';
@@ -258,7 +258,7 @@ describe('PieChart', () => {
   });
 
   it('handles donut mode', () => {
-    const { container } = render(<PieChart data={sampleData} title="Donut" donut />);
+    render(<PieChart data={sampleData} title="Donut" donut />);
 
     expect(screen.getByText('Donut')).toBeInTheDocument();
     expect(screen.getByText('总计')).toBeInTheDocument();

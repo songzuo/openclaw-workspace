@@ -1,7 +1,15 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import { ChartContainer, ChartLegend, TimeSeriesPoint, CHART_COLORS } from './Chart';
+
+// ===== 性能优化: 常量配置移到组件外部 =====
+const DEFAULT_HEIGHT = 300;
+const DEFAULT_REALTIME_HEIGHT = 250;
+const DEFAULT_MULTI_HEIGHT = 350;
+const GRID_LINES_COUNT = 5;
+const CHART_PADDING = { top: 30, right: 30, bottom: 60, left: 60 };
+const REALTIME_PADDING = { top: 20, right: 20, bottom: 30, left: 50 };
 
 // ===== Line Chart =====
 interface LineChartProps {
@@ -15,11 +23,20 @@ interface LineChartProps {
   animate?: boolean;
 }
 
-export function LineChart({
+/**
+ * LineChart 组件 - 折线图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存数值计算和路径 - 避免重复计算
+ * 3. useCallback 缓存 hover 事件处理 - 避免函数重建
+ * 4. 常量配置外部化 - 减少每次渲染的对象创建
+ */
+function LineChartComponent({
   data,
   title,
   subtitle,
-  height = 300,
+  height = DEFAULT_HEIGHT,
   color = CHART_COLORS.blue,
   showArea = true,
   showPoints = true,
@@ -27,6 +44,7 @@ export function LineChart({
 }: LineChartProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  // 性能优化: useMemo 缓存统计值计算
   const { minValue, maxValue, total } = useMemo(() => {
     const values = data.map((d) => d.value);
     const min = Math.min(...values);
@@ -35,24 +53,27 @@ export function LineChart({
     return { minValue: Math.min(0, min), maxValue: max || 1, total: sum };
   }, [data]);
 
-  const chartDimensions = {
+  // 性能优化: useMemo 缓存图表尺寸配置
+  const chartConfig = useMemo(() => ({
     width: 500,
     height,
-    padding: { top: 30, right: 30, bottom: 60, left: 60 },
-  };
+    padding: CHART_PADDING,
+    chartWidth: 500 - CHART_PADDING.left - CHART_PADDING.right,
+    chartHeight: height - CHART_PADDING.top - CHART_PADDING.bottom,
+  }), [height]);
 
-  const chartWidth = chartDimensions.width - chartDimensions.padding.left - chartDimensions.padding.right;
-  const chartHeight = chartDimensions.height - chartDimensions.padding.top - chartDimensions.padding.bottom;
-
+  // 性能优化: useMemo 缓存点位计算
   const points = useMemo(() => {
+    const { padding, chartWidth, chartHeight } = chartConfig;
     return data.map((d, i) => ({
-      x: chartDimensions.padding.left + (chartWidth / (data.length - 1 || 1)) * i,
-      y: chartDimensions.padding.top + chartHeight - ((d.value - minValue) / (maxValue - minValue || 1)) * chartHeight,
+      x: padding.left + (chartWidth / (data.length - 1 || 1)) * i,
+      y: padding.top + chartHeight - ((d.value - minValue) / (maxValue - minValue || 1)) * chartHeight,
       value: d.value,
       label: d.label,
     }));
-  }, [data, chartWidth, chartHeight, minValue, maxValue]);
+  }, [data, chartConfig, minValue, maxValue]);
 
+  // 性能优化: useMemo 缓存路径计算
   const pathD = useMemo(() => {
     if (points.length === 0) return '';
     let d = `M ${points[0].x} ${points[0].y}`;
@@ -65,28 +86,51 @@ export function LineChart({
     return d;
   }, [points]);
 
+  // 性能优化: useMemo 缓存区域路径计算
   const areaD = useMemo(() => {
     if (!showArea || points.length === 0) return '';
-    const yBase = chartDimensions.padding.top + chartHeight;
+    const { padding, chartHeight } = chartConfig;
+    const yBase = padding.top + chartHeight;
     return `${pathD} L ${points[points.length - 1].x} ${yBase} L ${points[0].x} ${yBase} Z`;
-  }, [pathD, showArea, points]);
+  }, [pathD, showArea, points, chartConfig]);
+
+  // 性能优化: useMemo 缓存 Y 轴标签
+  const yLabels = useMemo(() => [
+    maxValue,
+    Math.round(((maxValue - minValue) * 0.75 + minValue)),
+    Math.round(((maxValue - minValue) * 0.5 + minValue)),
+    Math.round(((maxValue - minValue) * 0.25 + minValue)),
+    minValue
+  ], [maxValue, minValue]);
+
+  // 性能优化: useCallback 缓存 hover 事件处理函数
+  const handleMouseEnter = useCallback((index: number) => {
+    setHoveredIndex(index);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredIndex(null);
+  }, []);
+
+  // 性能优化: useMemo 缓存渐变 ID
+  const gradientId = useMemo(() => `gradient-${title.replace(/\s+/g, '-')}`, [title]);
 
   return (
     <ChartContainer title={title} subtitle={subtitle}>
       <svg
         width="100%"
         height={height}
-        viewBox={`0 0 ${chartDimensions.width} ${chartDimensions.height}`}
+        viewBox={`0 0 ${chartConfig.width} ${chartConfig.height}`}
         className="overflow-visible"
       >
         {/* Grid lines */}
-        {[0, 1, 2, 3, 4].map((i) => (
+        {Array.from({ length: GRID_LINES_COUNT }).map((_, i) => (
           <line
             key={i}
-            x1={chartDimensions.padding.left}
-            y1={chartDimensions.padding.top + (chartHeight / 4) * i}
-            x2={chartDimensions.width - chartDimensions.padding.right}
-            y2={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x1={chartConfig.padding.left}
+            y1={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            x2={chartConfig.width - chartConfig.padding.right}
+            y2={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
             stroke="currentColor"
             className="text-gray-200 dark:text-gray-700"
             strokeDasharray="4,4"
@@ -94,25 +138,23 @@ export function LineChart({
         ))}
 
         {/* Y-axis labels */}
-        {[maxValue, Math.round(((maxValue - minValue) * 0.75 + minValue)), Math.round(((maxValue - minValue) * 0.5 + minValue)), Math.round(((maxValue - minValue) * 0.25 + minValue)), minValue].map(
-          (label, i) => (
-            <text
-              key={i}
-              x={chartDimensions.padding.left - 10}
-              y={chartDimensions.padding.top + (chartHeight / 4) * i}
-              textAnchor="end"
-              alignmentBaseline="middle"
-              className="fill-gray-500 dark:fill-gray-400 text-xs"
-            >
-              {label}
-            </text>
-          )
-        )}
+        {yLabels.map((label, i) => (
+          <text
+            key={i}
+            x={chartConfig.padding.left - 10}
+            y={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            textAnchor="end"
+            alignmentBaseline="middle"
+            className="fill-gray-500 dark:fill-gray-400 text-xs"
+          >
+            {label}
+          </text>
+        ))}
 
         {/* Area fill */}
         {showArea && areaD && (
           <defs>
-            <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={color} stopOpacity={0.3} />
               <stop offset="100%" stopColor={color} stopOpacity={0} />
             </linearGradient>
@@ -121,7 +163,7 @@ export function LineChart({
         {showArea && areaD && (
           <path
             d={areaD}
-            fill={`url(#gradient-${title})`}
+            fill={`url(#${gradientId})`}
             className={animate ? 'animate-fade-in' : ''}
           />
         )}
@@ -150,8 +192,8 @@ export function LineChart({
                 stroke="white"
                 strokeWidth={2}
                 className="transition-all duration-200 cursor-pointer"
-                onMouseEnter={() => setHoveredIndex(i)}
-                onMouseLeave={() => setHoveredIndex(null)}
+                onMouseEnter={() => handleMouseEnter(i)}
+                onMouseLeave={handleMouseLeave}
               />
               {hoveredIndex === i && (
                 <g>
@@ -179,16 +221,15 @@ export function LineChart({
 
         {/* X-axis labels */}
         {data.map((d, i) => {
-          // Show every nth label based on data length
           const showLabel = data.length <= 10 || i % Math.ceil(data.length / 10) === 0;
           if (!showLabel) return null;
           return (
             <text
               key={i}
-              x={chartDimensions.padding.left + (chartWidth / (data.length - 1 || 1)) * i}
-              y={chartDimensions.height - chartDimensions.padding.bottom + 20}
+              x={chartConfig.padding.left + (chartConfig.chartWidth / (data.length - 1 || 1)) * i}
+              y={chartConfig.height - chartConfig.padding.bottom + 20}
               textAnchor="middle"
-              className="fill-gray-500 dark:fill-gray-400 text-xs"
+              className="fill-gray-500 dark:text-gray-400 text-xs"
             >
               {d.label.length > 8 ? d.label.slice(0, 8) : d.label}
             </text>
@@ -237,6 +278,9 @@ export function LineChart({
   );
 }
 
+// 性能优化: 使用 React.memo 包装组件
+export const LineChart = memo(LineChartComponent);
+
 // ===== Real-time Line Chart =====
 interface RealtimeLineChartProps {
   title: string;
@@ -247,12 +291,21 @@ interface RealtimeLineChartProps {
   updateInterval?: number;
 }
 
-export function RealtimeLineChart({
+/**
+ * RealtimeLineChart 组件 - 实时折线图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存数值计算和点位 - 避免重复计算
+ * 3. 常量配置外部化 - 减少每次渲染的对象创建
+ */
+function RealtimeLineChartComponent({
   title,
   data,
-  height = 250,
+  height = DEFAULT_REALTIME_HEIGHT,
   color = CHART_COLORS.green,
 }: RealtimeLineChartProps) {
+  // 性能优化: useMemo 缓存统计值计算
   const { minValue, maxValue } = useMemo(() => {
     const values = data.map((d) => d.value);
     const min = Math.min(...values);
@@ -260,29 +313,34 @@ export function RealtimeLineChart({
     return { minValue: Math.min(0, min), maxValue: max || 1 };
   }, [data]);
 
-  const chartDimensions = {
+  // 性能优化: useMemo 缓存图表配置
+  const chartConfig = useMemo(() => ({
     width: 400,
     height,
-    padding: { top: 20, right: 20, bottom: 30, left: 50 },
-  };
+    padding: REALTIME_PADDING,
+    chartWidth: 400 - REALTIME_PADDING.left - REALTIME_PADDING.right,
+    chartHeight: height - REALTIME_PADDING.top - REALTIME_PADDING.bottom,
+  }), [height]);
 
-  const chartWidth = chartDimensions.width - chartDimensions.padding.left - chartDimensions.padding.right;
-  const chartHeight = chartDimensions.height - chartDimensions.padding.top - chartDimensions.padding.bottom;
-
+  // 性能优化: useMemo 缓存点位计算
   const points = useMemo(() => {
     if (data.length === 0) return [];
+    const { padding, chartWidth, chartHeight } = chartConfig;
     return data.map((d, i) => ({
-      x: chartDimensions.padding.left + (chartWidth / (data.length - 1 || 1)) * i,
-      y: chartDimensions.padding.top + chartHeight - ((d.value - minValue) / (maxValue - minValue || 1)) * chartHeight,
+      x: padding.left + (chartWidth / (data.length - 1 || 1)) * i,
+      y: padding.top + chartHeight - ((d.value - minValue) / (maxValue - minValue || 1)) * chartHeight,
       value: d.value,
     }));
-  }, [data, chartWidth, chartHeight, minValue, maxValue]);
+  }, [data, chartConfig, minValue, maxValue]);
 
-  const pathD = points.length > 0
-    ? points.reduce((acc, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`), '')
-    : '';
+  // 性能优化: useMemo 缓存路径计算
+  const pathD = useMemo(() => {
+    if (points.length === 0) return '';
+    return points.reduce((acc, p, i) => (i === 0 ? `M ${p.x} ${p.y}` : `${acc} L ${p.x} ${p.y}`), '');
+  }, [points]);
 
-  const latestValue = data[data.length - 1]?.value.toFixed(1) || '0';
+  // 性能优化: useMemo 缓存最新值
+  const latestValue = useMemo(() => data[data.length - 1]?.value.toFixed(1) || '0', [data]);
 
   return (
     <ChartContainer
@@ -297,16 +355,16 @@ export function RealtimeLineChart({
       <svg
         width="100%"
         height={height}
-        viewBox={`0 0 ${chartDimensions.width} ${chartDimensions.height}`}
+        viewBox={`0 0 ${chartConfig.width} ${chartConfig.height}`}
       >
         {/* Grid */}
-        {[0, 1, 2, 3, 4].map((i) => (
+        {Array.from({ length: GRID_LINES_COUNT }).map((_, i) => (
           <line
             key={i}
-            x1={chartDimensions.padding.left}
-            y1={chartDimensions.padding.top + (chartHeight / 4) * i}
-            x2={chartDimensions.width - chartDimensions.padding.right}
-            y2={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x1={chartConfig.padding.left}
+            y1={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            x2={chartConfig.width - chartConfig.padding.right}
+            y2={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
             stroke="currentColor"
             className="text-gray-200 dark:text-gray-700"
             strokeDasharray="4,4"
@@ -346,6 +404,9 @@ export function RealtimeLineChart({
   );
 }
 
+// 性能优化: 使用 React.memo 包装组件
+export const RealtimeLineChart = memo(RealtimeLineChartComponent);
+
 // ===== Multi-Line Chart =====
 interface MultiLineChartProps {
   data: {
@@ -359,9 +420,18 @@ interface MultiLineChartProps {
   height?: number;
 }
 
-export function MultiLineChart({ data: series, labels, title, subtitle, height = 350 }: MultiLineChartProps) {
+/**
+ * MultiLineChart 组件 - 多折线图
+ * 
+ * 性能优化策略:
+ * 1. React.memo 包装 - 避免父组件重渲染时的不必要更新
+ * 2. useMemo 缓存数值计算和点位 - 避免重复计算
+ * 3. useCallback 缓存 hover 事件处理 - 避免函数重建
+ */
+function MultiLineChartComponent({ data: series, labels, title, subtitle, height = DEFAULT_MULTI_HEIGHT }: MultiLineChartProps) {
   const [hoveredPoint, setHoveredPoint] = useState<{ seriesIndex: number; pointIndex: number } | null>(null);
 
+  // 性能优化: useMemo 缓存统计值计算
   const { minValue, maxValue } = useMemo(() => {
     const allValues = series.flatMap((s) => s.values);
     const min = Math.min(...allValues);
@@ -369,43 +439,60 @@ export function MultiLineChart({ data: series, labels, title, subtitle, height =
     return { minValue: Math.min(0, min), maxValue: max || 1 };
   }, [series]);
 
-  const chartDimensions = {
+  // 性能优化: useMemo 缓存图表配置
+  const chartConfig = useMemo(() => ({
     width: 500,
     height,
-    padding: { top: 30, right: 30, bottom: 60, left: 60 },
-  };
+    padding: CHART_PADDING,
+    chartWidth: 500 - CHART_PADDING.left - CHART_PADDING.right,
+    chartHeight: height - CHART_PADDING.top - CHART_PADDING.bottom,
+  }), [height]);
 
-  const chartWidth = chartDimensions.width - chartDimensions.padding.left - chartDimensions.padding.right;
-  const chartHeight = chartDimensions.height - chartDimensions.padding.top - chartDimensions.padding.bottom;
-
+  // 性能优化: useMemo 缓存所有点位计算
   const allPoints = useMemo(() => {
+    const { padding, chartWidth, chartHeight } = chartConfig;
     return series.map((s) => ({
       name: s.name,
       color: s.color || CHART_COLORS.blue,
       points: s.values.map((v, i) => ({
-        x: chartDimensions.padding.left + (chartWidth / (labels.length - 1 || 1)) * i,
-        y: chartDimensions.padding.top + chartHeight - ((v - minValue) / (maxValue - minValue || 1)) * chartHeight,
+        x: padding.left + (chartWidth / (labels.length - 1 || 1)) * i,
+        y: padding.top + chartHeight - ((v - minValue) / (maxValue - minValue || 1)) * chartHeight,
         value: v,
       })),
     }));
-  }, [series, labels, chartWidth, chartHeight, minValue, maxValue]);
+  }, [series, labels, chartConfig, minValue, maxValue]);
+
+  // 性能优化: useCallback 缓存 hover 事件处理函数
+  const handleMouseEnter = useCallback((seriesIndex: number, pointIndex: number) => {
+    setHoveredPoint({ seriesIndex, pointIndex });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredPoint(null);
+  }, []);
+
+  // 性能优化: useMemo 缓存图例项
+  const legendItems = useMemo(() => 
+    series.map((s) => ({ label: s.name, color: s.color || CHART_COLORS.blue })),
+    [series]
+  );
 
   return (
     <ChartContainer title={title} subtitle={subtitle}>
       <svg
         width="100%"
         height={height}
-        viewBox={`0 0 ${chartDimensions.width} ${chartDimensions.height}`}
+        viewBox={`0 0 ${chartConfig.width} ${chartConfig.height}`}
         className="overflow-visible"
       >
         {/* Grid */}
-        {[0, 1, 2, 3, 4].map((i) => (
+        {Array.from({ length: GRID_LINES_COUNT }).map((_, i) => (
           <line
             key={i}
-            x1={chartDimensions.padding.left}
-            y1={chartDimensions.padding.top + (chartHeight / 4) * i}
-            x2={chartDimensions.width - chartDimensions.padding.right}
-            y2={chartDimensions.padding.top + (chartHeight / 4) * i}
+            x1={chartConfig.padding.left}
+            y1={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
+            x2={chartConfig.width - chartConfig.padding.right}
+            y2={chartConfig.padding.top + (chartConfig.chartHeight / (GRID_LINES_COUNT - 1)) * i}
             stroke="currentColor"
             className="text-gray-200 dark:text-gray-700"
             strokeDasharray="4,4"
@@ -433,8 +520,8 @@ export function MultiLineChart({ data: series, labels, title, subtitle, height =
                   r={hoveredPoint?.seriesIndex === si && hoveredPoint?.pointIndex === pi ? 5 : 3}
                   fill={s.color}
                   className="transition-all cursor-pointer"
-                  onMouseEnter={() => setHoveredPoint({ seriesIndex: si, pointIndex: pi })}
-                  onMouseLeave={() => setHoveredPoint(null)}
+                  onMouseEnter={() => handleMouseEnter(si, pi)}
+                  onMouseLeave={handleMouseLeave}
                 />
               ))}
             </g>
@@ -448,8 +535,8 @@ export function MultiLineChart({ data: series, labels, title, subtitle, height =
           return (
             <text
               key={i}
-              x={chartDimensions.padding.left + (chartWidth / (labels.length - 1 || 1)) * i}
-              y={chartDimensions.height - chartDimensions.padding.bottom + 20}
+              x={chartConfig.padding.left + (chartConfig.chartWidth / (labels.length - 1 || 1)) * i}
+              y={chartConfig.height - chartConfig.padding.bottom + 20}
               textAnchor="middle"
               className="fill-gray-500 dark:fill-gray-400 text-xs"
             >
@@ -459,10 +546,10 @@ export function MultiLineChart({ data: series, labels, title, subtitle, height =
         })}
       </svg>
 
-      <ChartLegend
-        items={series.map((s) => ({ label: s.name, color: s.color || CHART_COLORS.blue }))}
-        position="bottom"
-      />
+      <ChartLegend items={legendItems} position="bottom" />
     </ChartContainer>
   );
 }
+
+// 性能优化: 使用 React.memo 包装组件
+export const MultiLineChart = memo(MultiLineChartComponent);

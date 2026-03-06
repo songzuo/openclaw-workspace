@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useId, useMemo } from 'react';
+import React, { useState, useRef, useId, useMemo, useCallback, memo } from 'react';
 import { GitHubIssue } from '../dashboard/page';
 import ProgressBar from './ProgressBar';
 
@@ -29,13 +29,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
   }), [issues]);
 
   // 计算进度
-  const progress = stats.total > 0 
-    ? Math.round((stats.closed / stats.total) * 100) 
+  const progress = stats.total > 0
+    ? Math.round((stats.closed / stats.total) * 100)
     : 0;
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  // 使用 useCallback 缓存事件处理
+  const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     setFilter(e.target.value as 'all' | 'open' | 'closed');
-  };
+  }, []);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors">
@@ -124,21 +125,34 @@ interface TaskCardProps {
   issue: GitHubIssue;
 }
 
-export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
-  const stateColors = {
+// 状态配置 - 移到组件外部
+const TASK_CARD_CONFIG = {
+  colors: {
     open: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800',
     closed: 'text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
-  };
-
-  const stateLabels = {
+  },
+  labels: {
     open: '进行中',
     closed: '已完成'
-  };
-
-  const stateIcons = {
+  },
+  icons: {
     open: '🟢',
     closed: '✅'
-  };
+  }
+} as const;
+
+/**
+ * 任务卡片组件 - 性能优化版本
+ */
+export const TaskCard = memo(function TaskCard({ issue }: TaskCardProps) {
+  const stateColors = TASK_CARD_CONFIG.colors;
+  const stateLabels = TASK_CARD_CONFIG.labels;
+  const stateIcons = TASK_CARD_CONFIG.icons;
+
+  // 使用 useCallback 缓存事件处理
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
+  }, []);
 
   return (
     <article 
@@ -148,101 +162,185 @@ export const TaskCard: React.FC<TaskCardProps> = ({ issue }) => {
     >
       <div className="flex items-start gap-3">
         {/* 状态图标 */}
-        <div className="mt-1 flex-shrink-0">
-          <span 
-            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${stateColors[issue.state]}`}
-            aria-label={`状态：${stateLabels[issue.state]}`}
-          >
-            <span aria-hidden="true">{stateIcons[issue.state]}</span>
-            {stateLabels[issue.state]}
-          </span>
-        </div>
+        <TaskCardStatusIcon
+          state={issue.state}
+          colors={stateColors}
+          labels={stateLabels}
+          icons={stateIcons}
+        />
 
         {/* 内容区 */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2">
-            <a
-              href={issue.html_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
-              aria-label={`issue #${issue.number}`}
-            >
-              #{issue.number}
-            </a>
-            <h3 
-              id={`issue-${issue.number}-title`}
-              className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
-            >
-              {issue.title}
-            </h3>
-          </div>
-
-          {/* 标签 */}
-          {issue.labels.length > 0 && (
-            <div className="flex items-center gap-1 mb-2 flex-wrap" role="group" aria-label="标签">
-              {issue.labels.slice(0, 5).map((label, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                  style={{
-                    backgroundColor: `#${label.color}20`,
-                    color: `#${label.color}`
-                  }}
-                  aria-label={`标签：${label.name}`}
-                >
-                  {label.name}
-                </span>
-              ))}
-              {issue.labels.length > 5 && (
-                <span className="text-xs text-gray-500 dark:text-gray-400" aria-label={`还有 ${issue.labels.length - 5} 个标签`}>
-                  +{issue.labels.length - 5}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* 元信息 */}
-          <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400" role="group" aria-label="任务信息">
-            {issue.assignee && (
-              <div className="flex items-center gap-1" aria-label={`指派给：${issue.assignee.login}`}>
-                <img
-                  src={issue.assignee.avatar_url}
-                  alt=""
-                  className="w-4 h-4 rounded-full"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
-                  }}
-                />
-                <span>{issue.assignee.login}</span>
-              </div>
-            )}
-            <span aria-hidden="true">·</span>
-            <time 
-              dateTime={issue.updated_at}
-              title={new Date(issue.updated_at).toLocaleString()}
-            >
-              更新于 {formatTimeAgo(issue.updated_at)}
-            </time>
-          </div>
-        </div>
+        <TaskCardContent issue={issue} />
 
         {/* 外部链接 */}
-        <div className="flex-shrink-0">
-          <a
-            href={issue.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
-            aria-label={`在新窗口中查看任务 #${issue.number}`}
-          >
-            查看 →
-          </a>
-        </div>
+        <TaskCardLink url={issue.html_url} number={issue.number} />
       </div>
     </article>
   );
-};
+}, (prevProps: TaskCardProps, nextProps: TaskCardProps) => {
+  // 自定义比较：只在 issue 相关属性变化时重新渲染
+  return (
+    prevProps.issue.number === nextProps.issue.number &&
+    prevProps.issue.title === nextProps.issue.title &&
+    prevProps.issue.state === nextProps.issue.state &&
+    prevProps.issue.updated_at === nextProps.issue.updated_at &&
+    JSON.stringify(prevProps.issue.labels) === JSON.stringify(nextProps.issue.labels)
+  );
+});
+
+// ============================================================================
+// TaskCard 子组件
+// ============================================================================
+
+interface TaskCardStatusIconProps {
+  state: 'open' | 'closed';
+  colors: typeof TASK_CARD_CONFIG.colors;
+  labels: typeof TASK_CARD_CONFIG.labels;
+  icons: typeof TASK_CARD_CONFIG.icons;
+}
+
+const TaskCardStatusIcon = memo(function TaskCardStatusIcon({
+  state,
+  colors,
+  labels,
+  icons,
+}: TaskCardStatusIconProps) {
+  return (
+    <div className="mt-1 flex-shrink-0">
+      <span
+        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${colors[state]}`}
+        aria-label={`状态：${labels[state]}`}
+      >
+        <span aria-hidden="true">{icons[state]}</span>
+        {labels[state]}
+      </span>
+    </div>
+  );
+});
+
+interface TaskCardContentProps {
+  issue: GitHubIssue;
+}
+
+const TaskCardContent = memo(function TaskCardContent({ issue }: TaskCardContentProps) {
+  // 使用 useCallback 缓存图片错误处理
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=unknown';
+  }, []);
+
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex items-center gap-2 mb-2">
+        <a
+          href={issue.html_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
+          aria-label={`issue #${issue.number}`}
+        >
+          #{issue.number}
+        </a>
+        <h3 
+          id={`issue-${issue.number}-title`}
+          className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors"
+        >
+          {issue.title}
+        </h3>
+      </div>
+
+      {/* 标签 */}
+      {issue.labels.length > 0 && (
+        <TaskCardLabels labels={issue.labels} />
+      )}
+
+      {/* 元信息 */}
+      <TaskCardMeta issue={issue} onImageError={handleImageError} />
+    </div>
+  );
+});
+
+interface TaskCardLabelsProps {
+  labels: Array<{ name: string; color: string }>;
+}
+
+const TaskCardLabels = memo(function TaskCardLabels({ labels }: TaskCardLabelsProps) {
+  const displayLabels = labels.slice(0, 5);
+  const remainingCount = labels.length - 5;
+
+  return (
+    <div className="flex items-center gap-1 mb-2 flex-wrap" role="group" aria-label="标签">
+      {displayLabels.map((label, idx) => (
+        <span
+          key={idx}
+          className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+          style={{
+            backgroundColor: `#${label.color}20`,
+            color: `#${label.color}`
+          }}
+          aria-label={`标签：${label.name}`}
+        >
+          {label.name}
+        </span>
+      ))}
+      {remainingCount > 0 && (
+        <span className="text-xs text-gray-500 dark:text-gray-400" aria-label={`还有 ${remainingCount} 个标签`}>
+          +{remainingCount}
+        </span>
+      )}
+    </div>
+  );
+});
+
+interface TaskCardMetaProps {
+  issue: GitHubIssue;
+  onImageError: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+}
+
+const TaskCardMeta = memo(function TaskCardMeta({ issue, onImageError }: TaskCardMetaProps) {
+  return (
+    <div className="flex items-center gap-3 text-xs text-gray-600 dark:text-gray-400" role="group" aria-label="任务信息">
+      {issue.assignee && (
+        <div className="flex items-center gap-1" aria-label={`指派给：${issue.assignee.login}`}>
+          <img
+            src={issue.assignee.avatar_url}
+            alt=""
+            className="w-4 h-4 rounded-full"
+            onError={onImageError}
+          />
+          <span>{issue.assignee.login}</span>
+        </div>
+      )}
+      <span aria-hidden="true">·</span>
+      <time 
+        dateTime={issue.updated_at}
+        title={new Date(issue.updated_at).toLocaleString()}
+      >
+        更新于 {formatTimeAgo(issue.updated_at)}
+      </time>
+    </div>
+  );
+});
+
+interface TaskCardLinkProps {
+  url: string;
+  number: number;
+}
+
+const TaskCardLink = memo(function TaskCardLink({ url, number }: TaskCardLinkProps) {
+  return (
+    <div className="flex-shrink-0">
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 rounded"
+        aria-label={`在新窗口中查看任务 #${number}`}
+      >
+        查看 →
+      </a>
+    </div>
+  );
+});
 
 // ============================================================================
 // 工具函数

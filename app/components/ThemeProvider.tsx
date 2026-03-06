@@ -76,10 +76,15 @@ function setStoredTheme(theme: Theme): void {
 /**
  * 应用主题到 DOM
  */
-function applyTheme(theme: ResolvedTheme): void {
+function applyTheme(theme: ResolvedTheme, enableTransition: boolean = true): void {
   if (typeof document === 'undefined') return;
   
   const root = document.documentElement;
+  
+  // 添加过渡类以启用平滑动画
+  if (enableTransition) {
+    root.classList.add('theme-transitioning');
+  }
   
   if (theme === 'dark') {
     root.classList.add('dark');
@@ -87,6 +92,13 @@ function applyTheme(theme: ResolvedTheme): void {
   } else {
     root.classList.remove('dark');
     root.style.colorScheme = 'light';
+  }
+  
+  // 动画完成后移除过渡类
+  if (enableTransition) {
+    setTimeout(() => {
+      root.classList.remove('theme-transitioning');
+    }, TRANSITION_DURATION);
   }
 }
 
@@ -161,7 +173,7 @@ export function ThemeProvider({
     
     // 触发过渡动画
     setIsTransitioning(true);
-    applyTheme(resolved);
+    applyTheme(resolved, true);
     
     // 过渡结束后重置状态
     const timer = setTimeout(() => {
@@ -183,7 +195,7 @@ export function ThemeProvider({
       
       // 触发过渡动画
       setIsTransitioning(true);
-      applyTheme(newResolvedTheme);
+      applyTheme(newResolvedTheme, true);
       
       setTimeout(() => {
         setIsTransitioning(false);

@@ -1,8 +1,9 @@
 /**
- * 导出工具 - 支持 PDF、CSV、JSON 格式导出数据
+ * 导出工具 - 支持 PDF、CSV、JSON、Excel 格式导出数据
  */
 
 import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 import type { AIMember, GitHubIssue, GitHubCommit, ActivityItem } from '../dashboard/page';
 import type { Task, TaskStats } from './tasks/types';
 
@@ -10,7 +11,7 @@ import type { Task, TaskStats } from './tasks/types';
 // 类型定义
 // ============================================================================
 
-export type ExportFormat = 'csv' | 'json' | 'pdf';
+export type ExportFormat = 'csv' | 'json' | 'pdf' | 'excel';
 
 export interface ExportOptions {
   format: ExportFormat;
@@ -534,6 +535,163 @@ export function exportCompleteReport(
       break;
   }
 }
+
+// ============================================================================
+// Blob-based 导出函数 (用于测试和 API 兼容)
+// ============================================================================
+
+/**
+ * 导出任务数据为 CSV Blob
+ * 别名: exportTasksCSV (向后兼容)
+ */
+export function exportTasksToCSV(tasks: Task[]): Blob {
+  const data = tasks.map(task => ({
+    ID: task.id,
+    Title: task.title,
+    Status: task.status,
+    Priority: task.priority,
+    Assignee: task.assignee || '',
+    DueDate: task.dueDate ? new Date(task.dueDate).toISOString() : '',
+    Tags: task.tags.map(t => t.name).join(';'),
+    CreatedAt: new Date(task.createdAt).toISOString(),
+    UpdatedAt: new Date(task.updatedAt).toISOString(),
+  }));
+  
+  const csv = arrayToCSV(data);
+  return new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+}
+
+/**
+ * 导出任务数据为 JSON Blob
+ * 别名: exportTasksJSON (向后兼容)
+ */
+export function exportTasksToJSON(tasks: Task[]): Blob {
+  const data = tasks.map(task => ({
+    ...task,
+    dueDate: task.dueDate ? new Date(task.dueDate).toISOString() : null,
+    createdAt: new Date(task.createdAt).toISOString(),
+    updatedAt: new Date(task.updatedAt).toISOString(),
+    completedAt: task.completedAt ? new Date(task.completedAt).toISOString() : null,
+  }));
+  
+  const json = JSON.stringify(data, null, 2);
+  return new Blob([json], { type: 'application/json;charset=utf-8;' });
+}
+
+/**
+ * 导出任务数据为 PDF Blob
+ * 别名: exportTasksPDF (向后兼容)
+ */
+export function exportTasksToPDF(tasks: Task[]): Blob {
+  const doc = new jsPDF();
+  let yPos = 20;
+  
+  // 标题
+  doc.setFontSize(20);
+  doc.text('Task Report', 105, yPos, { align: 'center' });
+  yPos += 10;
+  
+  // 生成日期
+  doc.setFontSize(10);
+  doc.text(`Generated: ${new Date().toLocaleString('en-US')}`, 105, yPos, { align: 'center' });
+  yPos += 15;
+  
+  // 统计信息
+  const stats = {
+    total: tasks.length,
+    todo: tasks.filter(t => t.status === 'todo').length,
+    inProgress: tasks.filter(t => t.status === 'in_progress').length,
+    done: tasks.filter(t => t.status === 'done').length,
+    review: tasks.filter(t => t.status === 'review').length,
+  };
+  
+  doc.setFontSize(14);
+  doc.text('Task Statistics', 20, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  const statsLines = [
+    `Total Tasks: ${stats.total}`,
+    `Completed: ${stats.done}`,
+    `In Progress: ${stats.inProgress}`,
+    `To Do: ${stats.todo}`,
+    `In Review: ${stats.review}`,
+  ];
+  
+  statsLines.forEach(line => {
+    doc.text(line, 25, yPos);
+    yPos += 6;
+  });
+  
+  yPos += 10;
+  
+  // 任务列表
+  doc.setFontSize(14);
+  doc.text('Task List', 20, yPos);
+  yPos += 10;
+  
+  const statusIcons: Record<string, string> = {
+    todo: '[ ]',
+    in_progress: '[~]',
+    review: '[?]',
+    done: '[X]',
+  };
+  
+  const priorityIcons: Record<string, string> = {
+    high: '!!!',
+    medium: '!!',
+    low: '!',
+  };
+  
+  doc.setFontSize(8);
+  tasks.forEach(task => {
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 20;
+    }
+    
+    const icon = statusIcons[task.status] || '[ ]';
+    const priority = priorityIcons[task.priority] || '!';
+    
+    doc.text(`${icon} ${priority} ${task.title}`, 25, yPos);
+    yPos += 5;
+  });
+  
+  // 返回 Blob
+  const pdfOutput = doc.output('blob');
+  return pdfOutput;
+}
+
+/**
+ * 导出任务数据为 Excel Blob
+ */
+export function exportTasksToExcel(tasks: Task[]): Blob {
+  const data = tasks.map(task => ({
+    ID: task.id,
+    Title: task.title,
+    Description: task.description || '',
+    Status: task.status,
+    Priority: task.priority,
+    Assignee: task.assignee || '',
+    DueDate: task.dueDate ? new Date(task.dueDate).toISOString() : '',
+    Tags: task.tags.map(t => t.name).join(', '),
+    CreatedAt: new Date(task.createdAt).toISOString(),
+    UpdatedAt: new Date(task.updatedAt).toISOString(),
+    CompletedAt: task.completedAt ? new Date(task.completedAt).toISOString() : '',
+  }));
+  
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
+  
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+/**
+ * 导出任务为 Excel (别名，保持一致性)
+ */
+export const exportTasksExcel = exportTasksToExcel;
 
 // ============================================================================
 // 辅助函数

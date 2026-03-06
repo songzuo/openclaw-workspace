@@ -1,7 +1,7 @@
 # 组件参考文档
 
 **最后更新**: 2026-03-06  
-**版本**: v1.0.0
+**版本**: v1.1.0
 
 ---
 
@@ -10,8 +10,11 @@
 1. [核心组件](#核心组件)
 2. [消息组件](#消息组件)
 3. [通知组件](#通知组件)
-4. [UI 组件](#ui-组件)
-5. [类型定义](#类型定义)
+4. [主题组件](#主题组件)
+5. [导出组件](#导出组件)
+6. [任务组件](#任务组件)
+7. [UI 组件](#ui-组件)
+8. [类型定义](#类型定义)
 
 ---
 
@@ -476,7 +479,781 @@ export interface NotificationGroup {
 
 ---
 
+## 主题组件
+
+### ThemeProvider
+
+主题提供者组件，提供全应用的主题状态管理。
+
+**文件位置**: `app/components/ThemeProvider.tsx`
+
+```tsx
+import { ThemeProvider, useTheme } from '@/components/ThemeProvider';
+```
+
+#### Props
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `children` | `React.ReactNode` | 是 | - | 子组件 |
+| `defaultTheme` | `Theme` | 否 | `'system'` | 默认主题 |
+
+#### Theme 类型
+
+```typescript
+type Theme = 'light' | 'dark' | 'system';
+type ResolvedTheme = 'light' | 'dark';
+```
+
+#### useTheme Hook
+
+```tsx
+const { 
+  theme,           // 当前主题设置 ('light' | 'dark' | 'system')
+  resolvedTheme,   // 实际应用的主题 ('light' | 'dark')
+  isTransitioning, // 是否正在切换 (boolean)
+  setTheme,        // 设置主题 (theme: Theme) => void
+  toggleTheme      // 切换主题 () => void
+} = useTheme();
+```
+
+#### 功能特性
+
+- ✅ 三种主题模式 (light/dark/system)
+- ✅ localStorage 持久化
+- ✅ 跟随系统主题变化（实时监听 prefers-color-scheme）
+- ✅ 平滑过渡动画 (300ms)
+- ✅ SSR 兼容（避免水合不匹配）
+
+#### 使用示例
+
+```tsx
+// 在布局中使用
+<ThemeProvider defaultTheme="system">
+  <App />
+</ThemeProvider>
+
+// 在组件中使用
+function MyComponent() {
+  const { theme, resolvedTheme, setTheme, toggleTheme, isTransitioning } = useTheme();
+  
+  return (
+    <div className={isTransitioning ? 'theme-transitioning' : ''}>
+      <p>当前设置: {theme}</p>
+      <p>实际主题: {resolvedTheme}</p>
+      <button onClick={toggleTheme}>
+        {resolvedTheme === 'dark' ? '🌙' : '☀️'}
+      </button>
+      <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
+        <option value="light">浅色</option>
+        <option value="dark">深色</option>
+        <option value="system">跟随系统</option>
+      </select>
+    </div>
+  );
+}
+```
+
+---
+
+### ThemeToggle
+
+主题切换按钮组件，支持简单模式和下拉菜单模式。
+
+**文件位置**: `app/components/ThemeToggle.tsx`
+
+```tsx
+import { ThemeToggle } from '@/components/ThemeToggle';
+```
+
+#### Props
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `showDropdown` | `boolean` | 否 | `false` | 显示下拉菜单 |
+| `enableRipple` | `boolean` | 否 | `true` | 启用涟漪动画 |
+| `size` | `'sm' \| 'md' \| 'lg'` | 否 | `'md'` | 按钮尺寸 |
+
+#### 使用示例
+
+```tsx
+// 简单按钮模式（点击切换）
+<ThemeToggle />
+
+// 下拉菜单模式（选择主题）
+<ThemeToggle showDropdown size="lg" />
+
+// 禁用动画
+<ThemeToggle enableRipple={false} />
+
+// 不同尺寸
+<ThemeToggle size="sm" />
+<ThemeToggle size="md" />
+<ThemeToggle size="lg" />
+```
+
+#### 功能特性
+
+- ✅ 简单按钮切换（点击循环切换 light/dark）
+- ✅ 下拉菜单选择（显示三个选项）
+- ✅ 涟漪点击动画
+- ✅ 键盘导航（方向键/Enter/Escape）
+- ✅ 无障碍支持（ARIA 属性）
+
+---
+
+## 导出组件
+
+导出功能通过工具函数实现，支持 PDF、CSV、JSON、Excel 格式。
+
+**文件位置**: `app/lib/export.ts`
+
+```tsx
+import {
+  // PDF 导出
+  exportToPDF,
+  exportTasksPDF,
+  
+  // CSV 导出
+  exportMembersCSV,
+  exportIssuesCSV,
+  exportCommitsCSV,
+  exportActivitiesCSV,
+  exportTasksCSV,
+  downloadCSV,
+  
+  // JSON 导出
+  exportReportJSON,
+  exportMembersJSON,
+  exportTasksJSON,
+  downloadJSON,
+  
+  // Excel 导出
+  exportTasksExcel,
+  
+  // 批量导出
+  exportCompleteReport,
+} from '@/lib/export';
+```
+
+### 导出格式类型
+
+```typescript
+export type ExportFormat = 'csv' | 'json' | 'pdf' | 'excel';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  filename?: string;
+  includeStats?: boolean;
+  dateRange?: {
+    start: Date;
+    end: Date;
+  };
+}
+
+export interface ReportData {
+  members: AIMember[];
+  issues: GitHubIssue[];
+  commits: GitHubCommit[];
+  activities: ActivityItem[];
+  tasks?: Task[];
+  stats: {
+    totalMembers: number;
+    working: number;
+    busy: number;
+    idle: number;
+    offline: number;
+    openIssues: number;
+    closedIssues: number;
+  };
+  taskStats?: TaskStats;
+  generatedAt: Date;
+}
+```
+
+### PDF 导出函数
+
+#### exportToPDF
+
+导出团队报告为 PDF 格式。
+
+```tsx
+exportToPDF(members, issues, commits, stats);
+// 生成文件: ai-team-report-YYYY-MM-DD.pdf
+```
+
+#### exportTasksPDF
+
+导出任务报告为 PDF 格式。
+
+```tsx
+exportTasksPDF(tasks, taskStats);
+// 生成文件: task-report-YYYY-MM-DD.pdf
+```
+
+### CSV 导出函数
+
+#### 通用函数
+
+```tsx
+// 通用 CSV 下载
+downloadCSV(data: Record<string, unknown>[], filename: string): void
+```
+
+#### 专用函数
+
+```tsx
+// 导出成员
+exportMembersCSV(members: AIMember[]): void
+// 生成文件: ai-team-members.csv
+
+// 导出 Issues
+exportIssuesCSV(issues: GitHubIssue[]): void
+// 生成文件: github-issues.csv
+
+// 导出 Commits
+exportCommitsCSV(commits: GitHubCommit[]): void
+// 生成文件: github-commits.csv
+
+// 导出活动日志
+exportActivitiesCSV(activities: ActivityItem[]): void
+// 生成文件: activity-log.csv
+
+// 导出任务
+exportTasksCSV(tasks: Task[]): void
+// 生成文件: tasks.csv
+```
+
+### JSON 导出函数
+
+```tsx
+// 通用 JSON 下载
+downloadJSON(data: unknown, filename: string): void
+
+// 导出完整报告
+exportReportJSON(reportData: ReportData): void
+// 生成文件: report-YYYY-MM-DD.json
+
+// 导出成员
+exportMembersJSON(members: AIMember[]): void
+
+// 导出任务
+exportTasksJSON(tasks: Task[]): void
+```
+
+### Excel 导出函数
+
+```tsx
+// 导出任务为 Excel
+exportTasksExcel(tasks: Task[]): void
+// 生成文件: tasks.xlsx
+```
+
+### 批量导出
+
+```tsx
+// 一次性导出完整报告
+exportCompleteReport(reportData: ReportData, format: ExportFormat): void
+
+// 示例
+exportCompleteReport(reportData, 'json');  // JSON 格式
+exportCompleteReport(reportData, 'pdf');   // PDF 格式（会生成两个 PDF）
+exportCompleteReport(reportData, 'csv');   // CSV 格式（会生成多个 CSV 文件）
+```
+
+### 使用示例
+
+```tsx
+import {
+  exportToPDF,
+  exportTasksPDF,
+  exportMembersCSV,
+  exportCompleteReport,
+} from '@/lib/export';
+
+function ExportButton({ members, issues, commits, tasks, stats, taskStats }) {
+  const handleExportPDF = () => {
+    // 导出团队报告
+    exportToPDF(members, issues, commits, stats);
+  };
+
+  const handleExportTasksPDF = () => {
+    // 导出任务报告
+    exportTasksPDF(tasks, taskStats);
+  };
+
+  const handleExportCSV = () => {
+    // 导出成员 CSV
+    exportMembersCSV(members);
+  };
+
+  const handleExportAll = () => {
+    // 导出完整报告
+    exportCompleteReport({
+      members,
+      issues,
+      commits,
+      activities: [],
+      tasks,
+      stats,
+      taskStats,
+      generatedAt: new Date(),
+    }, 'json');
+  };
+
+  return (
+    <div className="flex gap-2">
+      <button onClick={handleExportPDF}>导出 PDF</button>
+      <button onClick={handleExportTasksPDF}>导出任务 PDF</button>
+      <button onClick={handleExportCSV}>导出 CSV</button>
+      <button onClick={handleExportAll}>导出完整报告</button>
+    </div>
+  );
+}
+```
+
+---
+
+## 任务组件
+
+任务系统提供完整的任务管理功能，包括类型定义、API、Hooks 和数据仓库。
+
+### 类型定义
+
+**文件位置**: `app/lib/tasks/types.ts`
+
+```typescript
+// 任务优先级
+export type TaskPriority = 'high' | 'medium' | 'low';
+
+// 任务状态
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
+
+// 任务标签
+export interface TaskTag {
+  id: string;
+  name: string;
+  color: string; // Tailwind color class (e.g., 'blue', 'red', 'green')
+}
+
+// 任务实体
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+  tags: TaskTag[];
+  assignee?: string; // 子代理 ID
+  dueDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt?: Date;
+}
+
+// 任务筛选条件
+export interface TaskFilter {
+  priority?: TaskPriority;
+  status?: TaskStatus;
+  tags?: string[]; // Tag IDs
+  assignee?: string;
+  search?: string;
+}
+
+// 任务统计
+export interface TaskStats {
+  total: number;
+  done: number;
+  inProgress: number;
+  todo: number;
+  review: number;
+  overdue: number;
+  dueSoon: number;
+  completionRate: number; // 0-100
+  byPriority: {
+    high: number;
+    medium: number;
+    low: number;
+  };
+}
+```
+
+### 预定义常量
+
+```typescript
+// 默认标签
+export const DEFAULT_TAGS: TaskTag[] = [
+  { id: 'bug', name: 'Bug', color: 'red' },
+  { id: 'feature', name: 'Feature', color: 'blue' },
+  { id: 'enhancement', name: 'Enhancement', color: 'purple' },
+  { id: 'documentation', name: 'Docs', color: 'green' },
+  { id: 'urgent', name: 'Urgent', color: 'orange' },
+  { id: 'ai-agent', name: 'AI Agent', color: 'pink' },
+];
+
+// 优先级配置
+export const PRIORITY_CONFIG: Record<TaskPriority, { label: string; color: string; icon: string }> = {
+  high: { label: '高优先级', color: 'red', icon: '🔴' },
+  medium: { label: '中优先级', color: 'yellow', icon: '🟡' },
+  low: { label: '低优先级', color: 'green', icon: '🟢' },
+};
+
+// 状态配置
+export const STATUS_CONFIG: Record<TaskStatus, { label: string; color: string }> = {
+  todo: { label: '待办', color: 'gray' },
+  in_progress: { label: '进行中', color: 'blue' },
+  review: { label: '评审中', color: 'purple' },
+  done: { label: '已完成', color: 'green' },
+};
+```
+
+---
+
+### useTasks Hook
+
+任务管理 React Hook，提供完整的任务操作功能。
+
+**文件位置**: `app/lib/tasks/useTasks.ts`
+
+```tsx
+import { useTasks } from '@/lib/tasks/useTasks';
+```
+
+#### 返回值
+
+```typescript
+interface UseTasksReturn {
+  // ===== 状态 =====
+  tasks: Task[];           // 过滤和排序后的任务
+  allTasks: Task[];        // 所有任务（未过滤）
+  customTags: TaskTag[];   // 自定义标签
+  allTags: TaskTag[];      // 所有标签（默认 + 自定义）
+  filter: TaskFilter;      // 当前筛选条件
+  sortBy: 'priority' | 'dueDate' | 'createdAt'; // 排序方式
+  isLoading: boolean;      // 是否正在加载
+  error: string | null;    // 错误信息
+  stats: TaskStats;        // 任务统计
+
+  // ===== 任务操作 =====
+  addTask: (taskData: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => Promise<Task>;
+  updateTask: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  deleteTask: (taskId: string) => Promise<void>;
+  batchUpdateStatus: (taskIds: string[], status: TaskStatus) => Promise<void>;
+
+  // ===== 标签操作 =====
+  addCustomTag: (tag: Omit<TaskTag, 'id'>) => Promise<TaskTag>;
+  deleteCustomTag: (tagId: string) => Promise<void>;
+
+  // ===== 筛选和排序 =====
+  updateFilter: (newFilter: Partial<TaskFilter>) => void;
+  resetFilter: () => void;
+  setSortBy: (sortBy: 'priority' | 'dueDate' | 'createdAt') => void;
+  clearError: () => void;
+
+  // ===== 查询 =====
+  getTaskById: (taskId: string) => Task | undefined;
+  getTasksByTag: (tagId: string) => Task[];
+  getTasksByAssignee: (assigneeId: string) => Task[];
+}
+```
+
+#### 使用示例
+
+```tsx
+function TaskManager() {
+  const {
+    // 状态
+    tasks,
+    allTags,
+    stats,
+    isLoading,
+    error,
+    filter,
+    
+    // 操作
+    addTask,
+    updateTask,
+    deleteTask,
+    batchUpdateStatus,
+    updateFilter,
+    resetFilter,
+    setSortBy,
+    
+    // 查询
+    getTaskById,
+  } = useTasks();
+
+  // 创建任务
+  const handleCreate = async () => {
+    try {
+      const newTask = await addTask({
+        title: '实现新功能',
+        description: '详细描述...',
+        priority: 'high',
+        status: 'todo',
+        tags: [allTags[0]], // 使用第一个标签
+      });
+      console.log('创建成功:', newTask);
+    } catch (err) {
+      console.error('创建失败:', err);
+    }
+  };
+
+  // 更新任务状态
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    await updateTask(taskId, { status: newStatus });
+  };
+
+  // 筛选任务
+  const handleFilterChange = (status: TaskStatus | undefined) => {
+    updateFilter({ status });
+  };
+
+  if (isLoading) return <div>加载中...</div>;
+  if (error) return <div>错误: {error}</div>;
+
+  return (
+    <div>
+      {/* 统计信息 */}
+      <div className="stats">
+        <span>总数: {stats.total}</span>
+        <span>已完成: {stats.done}</span>
+        <span>完成率: {stats.completionRate}%</span>
+      </div>
+
+      {/* 筛选器 */}
+      <div className="filters">
+        <select onChange={(e) => handleFilterChange(e.target.value as TaskStatus)}>
+          <option value="">全部状态</option>
+          <option value="todo">待办</option>
+          <option value="in_progress">进行中</option>
+          <option value="review">评审中</option>
+          <option value="done">已完成</option>
+        </select>
+        
+        <select onChange={(e) => setSortBy(e.target.value as any)}>
+          <option value="priority">按优先级</option>
+          <option value="dueDate">按截止日期</option>
+          <option value="createdAt">按创建时间</option>
+        </select>
+        
+        <button onClick={resetFilter}>重置筛选</button>
+      </div>
+
+      {/* 任务列表 */}
+      <ul>
+        {tasks.map(task => (
+          <li key={task.id}>
+            <span>{task.title}</span>
+            <span>{PRIORITY_CONFIG[task.priority].icon}</span>
+            <button onClick={() => handleStatusChange(task.id, 'done')}>
+              完成
+            </button>
+            <button onClick={() => deleteTask(task.id)}>
+              删除
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button onClick={handleCreate}>创建任务</button>
+    </div>
+  );
+}
+```
+
+---
+
+### 任务 API 客户端
+
+**文件位置**: `app/lib/tasks/api.ts`
+
+```tsx
+import {
+  fetchTasks,
+  fetchTask,
+  createTaskApi,
+  updateTaskApi,
+  deleteTaskApi,
+  batchUpdateStatusApi,
+  fetchTaskStats,
+  fetchTags,
+  createTagApi,
+  deleteTagApi,
+} from '@/lib/tasks/api';
+```
+
+#### 函数列表
+
+| 函数 | 参数 | 返回值 | 说明 |
+|------|------|--------|------|
+| `fetchTasks(filter?)` | `TaskFilter` | `Promise<Task[]>` | 获取任务列表 |
+| `fetchTask(id)` | `string` | `Promise<Task \| null>` | 获取单个任务 |
+| `createTaskApi(taskData)` | `Omit<Task, 'id' \| 'createdAt' \| 'updatedAt'>` | `Promise<Task>` | 创建任务 |
+| `updateTaskApi(id, updates)` | `string, Partial<Task>` | `Promise<Task>` | 更新任务 |
+| `deleteTaskApi(id)` | `string` | `Promise<void>` | 删除任务 |
+| `batchUpdateStatusApi(ids, status)` | `string[], TaskStatus` | `Promise<number>` | 批量更新状态 |
+| `fetchTaskStats()` | - | `Promise<TaskStats>` | 获取统计信息 |
+| `fetchTags(customOnly?)` | `boolean` | `Promise<TaskTag[]>` | 获取标签列表 |
+| `createTagApi(tagData)` | `Omit<TaskTag, 'id'>` | `Promise<TaskTag>` | 创建标签 |
+| `deleteTagApi(id)` | `string` | `Promise<void>` | 删除标签 |
+
+#### 使用示例
+
+```tsx
+import { fetchTasks, createTaskApi, updateTaskApi } from '@/lib/tasks/api';
+
+// 获取所有任务
+const tasks = await fetchTasks();
+
+// 获取高优先级任务
+const highPriorityTasks = await fetchTasks({ priority: 'high' });
+
+// 创建任务
+const newTask = await createTaskApi({
+  title: '新任务',
+  priority: 'medium',
+  status: 'todo',
+  tags: [],
+});
+
+// 更新任务
+const updatedTask = await updateTaskApi(newTask.id, {
+  status: 'in_progress',
+});
+```
+
+---
+
+### 任务数据仓库
+
+**文件位置**: `app/lib/db/tasks.repository.ts`
+
+服务端数据库操作模块，用于 API 路由。
+
+#### 函数列表
+
+| 函数 | 说明 |
+|------|------|
+| `getAllTasks()` | 获取所有任务 |
+| `getTaskById(id)` | 根据 ID 获取任务 |
+| `filterTasks(filter)` | 按条件筛选任务 |
+| `createTask(taskData)` | 创建任务 |
+| `updateTask(id, updates)` | 更新任务 |
+| `deleteTask(id)` | 删除任务 |
+| `batchUpdateStatus(ids, status)` | 批量更新状态 |
+| `getTaskStats()` | 获取统计信息 |
+
+---
+
 ## UI 组件
+
+### ThemeProvider
+
+主题提供者组件，提供全应用的主题状态管理。
+
+**文件位置**: `app/components/ThemeProvider.tsx`
+
+```tsx
+import { ThemeProvider, useTheme } from '@/components/ThemeProvider';
+```
+
+#### Props
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `children` | `React.ReactNode` | 是 | - | 子组件 |
+| `defaultTheme` | `Theme` | 否 | `'system'` | 默认主题 |
+
+#### Theme 类型
+
+```typescript
+type Theme = 'light' | 'dark' | 'system';
+type ResolvedTheme = 'light' | 'dark';
+```
+
+#### useTheme Hook
+
+```tsx
+const { 
+  theme,           // 当前主题设置
+  resolvedTheme,   // 实际应用的主题
+  isTransitioning, // 是否正在切换
+  setTheme,        // 设置主题
+  toggleTheme      // 切换主题
+} = useTheme();
+```
+
+#### 功能特性
+
+- ✅ 三种主题模式 (light/dark/system)
+- ✅ localStorage 持久化
+- ✅ 跟随系统主题变化
+- ✅ 平滑过渡动画 (300ms)
+- ✅ SSR 兼容
+
+#### 使用示例
+
+```tsx
+// 在布局中使用
+<ThemeProvider defaultTheme="system">
+  <App />
+</ThemeProvider>
+
+// 在组件中使用
+function MyComponent() {
+  const { theme, resolvedTheme, setTheme, toggleTheme } = useTheme();
+  
+  return (
+    <button onClick={toggleTheme}>
+      当前: {resolvedTheme === 'dark' ? '🌙' : '☀️'}
+    </button>
+  );
+}
+```
+
+---
+
+### ThemeToggle
+
+主题切换按钮组件，支持简单模式和下拉菜单模式。
+
+**文件位置**: `app/components/ThemeToggle.tsx`
+
+```tsx
+import { ThemeToggle } from '@/components/ThemeToggle';
+```
+
+#### Props
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `showDropdown` | `boolean` | 否 | `false` | 显示下拉菜单 |
+| `enableRipple` | `boolean` | 否 | `true` | 启用涟漪动画 |
+| `size` | `'sm' \| 'md' \| 'lg'` | 否 | `'md'` | 按钮尺寸 |
+
+#### 使用示例
+
+```tsx
+// 简单按钮模式
+<ThemeToggle />
+
+// 下拉菜单模式
+<ThemeToggle showDropdown size="lg" />
+
+// 禁用动画
+<ThemeToggle enableRipple={false} />
+```
+
+#### 功能特性
+
+- ✅ 简单按钮切换
+- ✅ 下拉菜单选择
+- ✅ 涟漪点击动画
+- ✅ 键盘导航 (方向键/Enter/Escape)
+- ✅ 无障碍支持
+
+---
 
 ### ProgressBar
 
@@ -695,4 +1472,114 @@ interface MemberPresence {
 
 ---
 
+## 通知 Toast 组件 (新增)
+
+### NotificationToast
+
+通知 Toast 弹窗组件，支持多种类型和位置配置。
+
+**文件位置**: `app/components/NotificationToast.tsx`
+
+```tsx
+import { NotificationToast } from '@/components/NotificationToast';
+```
+
+#### Props
+
+| 属性 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `position` | `NotificationPosition` | 否 | `'top-right'` | Toast 位置 |
+| `maxVisible` | `number` | 否 | `5` | 最大显示数量 |
+
+#### NotificationPosition 类型
+
+```typescript
+type NotificationPosition = 
+  | 'top-right' 
+  | 'top-left' 
+  | 'bottom-right' 
+  | 'bottom-left' 
+  | 'top-center' 
+  | 'bottom-center';
+```
+
+#### 使用示例
+
+```tsx
+// 基础用法
+<NotificationToast />
+
+// 自定义位置和数量
+<NotificationToast position="bottom-right" maxVisible={3} />
+```
+
+#### 功能特性
+
+- ✅ 四种通知类型 (success/error/warning/info)
+- ✅ 六种位置配置
+- ✅ 自动入场动画
+- ✅ 键盘关闭支持 (ESC/Enter)
+- ✅ 无障碍支持 (ARIA)
+- ✅ 深色模式适配
+
+---
+
+### useNotifications Hook
+
+通知管理 Hook，提供便捷的通知操作方法。
+
+**文件位置**: `app/hooks/useNotifications.ts`
+
+```tsx
+import { useNotifications } from '@/hooks/useNotifications';
+```
+
+#### 返回值
+
+```typescript
+interface UseNotificationsReturn {
+  // 基础方法
+  push: (options: NotificationOptions) => Notification;
+  dismiss: (id: string) => void;
+  clearAll: () => void;
+  
+  // 快捷方法
+  success: (title: string, message?: string) => Notification;
+  error: (title: string, message?: string) => Notification;
+  warning: (title: string, message?: string) => Notification;
+  info: (title: string, message?: string) => Notification;
+  
+  // 当前通知列表
+  notifications: Notification[];
+}
+```
+
+#### 使用示例
+
+```tsx
+function MyComponent() {
+  const { success, error, warning, info } = useNotifications();
+  
+  const handleSave = async () => {
+    try {
+      await saveData();
+      success('保存成功', '数据已保存到服务器');
+    } catch (e) {
+      error('保存失败', '请稍后重试');
+    }
+  };
+  
+  return <button onClick={handleSave}>保存</button>;
+}
+```
+
+#### 功能特性
+
+- ✅ 四种快捷通知方法
+- ✅ 完整的类型支持
+- ✅ 与 NotificationToast 无缝集成
+
+---
+
 *文档由 7zi Studio AI 团队维护 🤖*
+*最后更新: 2026-03-06*

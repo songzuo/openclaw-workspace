@@ -1,42 +1,48 @@
 'use client';
 
-import React from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import { ActivityItem } from '../dashboard/page';
 
 interface ActivityLogProps {
   activities: ActivityItem[];
 }
 
-export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
-  const typeIcons = {
+// 类型配置 - 移到组件外部避免重复创建
+const TYPE_CONFIG = {
+  icons: {
     commit: '💻',
     issue: '📋',
     comment: '💬'
-  };
-
-  const typeColors = {
+  },
+  colors: {
     commit: 'bg-blue-50 text-blue-700 border-blue-200',
     issue: 'bg-green-50 text-green-700 border-green-200',
     comment: 'bg-purple-50 text-purple-700 border-purple-200'
-  };
-
-  const typeLabels = {
+  },
+  labels: {
     commit: '提交',
     issue: '任务',
     comment: '评论'
-  };
+  }
+} as const;
+
+/**
+ * 活动日志组件 - 性能优化版本
+ * 
+ * 优化措施:
+ * 1. 使用 React.memo 防止不必要的重渲染
+ * 2. 配置移到组件外部
+ * 3. 使用 useMemo 缓存配置
+ */
+export const ActivityLog: React.FC<ActivityLogProps> = memo(function ActivityLog({ activities }) {
+  const typeIcons = TYPE_CONFIG.icons;
+  const typeColors = TYPE_CONFIG.colors;
+  const typeLabels = TYPE_CONFIG.labels;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
       {/* 头部 */}
-      <header className="px-6 py-4 border-b bg-gray-50">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-          <span aria-hidden="true">⚡</span> 实时活动日志
-        </h2>
-        <p className="text-sm text-gray-600 mt-1" id="activity-count">
-          最近 {activities.length} 条活动
-        </p>
-      </header>
+      <ActivityLogHeader count={activities.length} />
 
       {/* 活动列表 */}
       <div 
@@ -46,11 +52,7 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
         aria-busy={false}
       >
         {activities.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500" role="status">
-            <p className="text-lg mb-2" aria-hidden="true">📭</p>
-            <p>暂无活动记录</p>
-            <p className="text-sm mt-1">GitHub 活动将显示在这里</p>
-          </div>
+          <EmptyState />
         ) : (
           activities.map((activity, index) => (
             <ActivityItemCard
@@ -73,7 +75,34 @@ export const ActivityLog: React.FC<ActivityLogProps> = ({ activities }) => {
       )}
     </div>
   );
-};
+});
+
+// ============================================================================
+// 子组件
+// ============================================================================
+
+const ActivityLogHeader = memo(function ActivityLogHeader({ count }: { count: number }) {
+  return (
+    <header className="px-6 py-4 border-b bg-gray-50">
+      <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <span aria-hidden="true">⚡</span> 实时活动日志
+      </h2>
+      <p className="text-sm text-gray-600 mt-1" id="activity-count">
+        最近 {count} 条活动
+      </p>
+    </header>
+  );
+});
+
+const EmptyState = memo(function EmptyState() {
+  return (
+    <div className="px-6 py-12 text-center text-gray-500" role="status">
+      <p className="text-lg mb-2" aria-hidden="true">📭</p>
+      <p>暂无活动记录</p>
+      <p className="text-sm mt-1">GitHub 活动将显示在这里</p>
+    </div>
+  );
+});
 
 // ============================================================================
 // 活动项卡片
@@ -87,13 +116,25 @@ interface ActivityItemCardProps {
   index: number;
 }
 
-function ActivityItemCard({ activity, icon, colorClass, label, index }: ActivityItemCardProps) {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+const ActivityItemCard = memo(function ActivityItemCard({ 
+  activity, 
+  icon, 
+  colorClass, 
+  label, 
+  index 
+}: ActivityItemCardProps) {
+  // 使用 useCallback 缓存键盘事件处理
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       window.open(activity.url, '_blank', 'noopener,noreferrer');
     }
-  };
+  }, [activity.url]);
+
+  // 使用 useCallback 缓存图片错误处理
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + activity.author;
+  }, [activity.author]);
 
   return (
     <article 
@@ -140,9 +181,7 @@ function ActivityItemCard({ activity, icon, colorClass, label, index }: Activity
                 src={activity.avatar}
                 alt=""
                 className="w-4 h-4 rounded-full"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://api.dicebear.com/7.x/bottts/svg?seed=' + activity.author;
-                }}
+                onError={handleImageError}
               />
             )}
             <span aria-label={`作者：${activity.author}`}>{activity.author}</span>
@@ -164,7 +203,7 @@ function ActivityItemCard({ activity, icon, colorClass, label, index }: Activity
       </div>
     </article>
   );
-}
+});
 
 // ============================================================================
 // 工具函数
