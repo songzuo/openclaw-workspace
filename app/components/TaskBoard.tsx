@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useId } from 'react';
+import React, { useState, useRef, useId, useMemo } from 'react';
 import { GitHubIssue } from '../dashboard/page';
 import { ProgressBar } from './ProgressBar';
 
@@ -13,17 +13,24 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
   const filterRef = useRef<HTMLSelectElement>(null);
   const filterId = useId();
 
-  const filteredIssues = issues.filter(issue => {
-    if (filter === 'all') return true;
-    return issue.state === filter;
-  });
+  // 使用 useMemo 缓存过滤后的 issues
+  const filteredIssues = useMemo(() => {
+    return issues.filter(issue => {
+      if (filter === 'all') return true;
+      return issue.state === filter;
+    });
+  }, [issues, filter]);
 
-  const openIssues = issues.filter(i => i.state === 'open');
-  const closedIssues = issues.filter(i => i.state === 'closed');
+  // 缓存统计计算
+  const stats = useMemo(() => ({
+    open: issues.filter(i => i.state === 'open').length,
+    closed: issues.filter(i => i.state === 'closed').length,
+    total: issues.length,
+  }), [issues]);
 
   // 计算进度
-  const progress = issues.length > 0 
-    ? Math.round((closedIssues.length / issues.length) * 100) 
+  const progress = stats.total > 0 
+    ? Math.round((stats.closed / stats.total) * 100) 
     : 0;
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -68,11 +75,11 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({ issues }) => {
             animated
           />
           <div className="flex items-center justify-between text-xs text-gray-600">
-            <span aria-label={`${openIssues.length} 个进行中的任务`}>
-              <span aria-hidden="true">🟢</span> {openIssues.length} 进行中
+            <span aria-label={`${stats.open} 个进行中的任务`}>
+              <span aria-hidden="true">🟢</span> {stats.open} 进行中
             </span>
-            <span aria-label={`${closedIssues.length} 个已完成的任务`}>
-              <span aria-hidden="true">✅</span> {closedIssues.length} 已完成
+            <span aria-label={`${stats.closed} 个已完成的任务`}>
+              <span aria-hidden="true">✅</span> {stats.closed} 已完成
             </span>
           </div>
         </div>

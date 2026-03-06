@@ -10,7 +10,7 @@
  * - 自动刷新 (30 秒)
  */
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { MemberCard } from '../components/MemberCard';
 import { TaskBoard } from '../components/TaskBoard';
 import { ActivityLog } from '../components/ActivityLog';
@@ -222,8 +222,8 @@ export default function DashboardPage() {
     return () => clearInterval(timer);
   }, [autoRefresh, refreshData]);
 
-  // 统计信息
-  const stats = {
+  // 统计信息 - 使用 useMemo 缓存，避免每次渲染都重新计算
+  const stats = useMemo(() => ({
     totalMembers: AI_MEMBERS.length,
     working: AI_MEMBERS.filter((m) => m.status === 'working').length,
     busy: AI_MEMBERS.filter((m) => m.status === 'busy').length,
@@ -231,7 +231,12 @@ export default function DashboardPage() {
     offline: AI_MEMBERS.filter((m) => m.status === 'offline').length,
     openIssues: issues.filter((i) => i.state === 'open').length,
     closedIssues: issues.filter((i) => i.state === 'closed').length,
-  };
+  }), [issues]);
+
+  // 缓存 refreshData 回调
+  const handleRefresh = useCallback(() => {
+    refreshData();
+  }, [refreshData]);
 
   if (isLoading && !issues.length) {
     return (
@@ -300,7 +305,7 @@ export default function DashboardPage() {
 
               {/* 手动刷新按钮 */}
               <button
-                onClick={refreshData}
+                onClick={handleRefresh}
                 disabled={isLoading}
                 className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
