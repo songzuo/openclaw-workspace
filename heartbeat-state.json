@@ -1,15 +1,14 @@
 {
   "lastChecks": {
-    "heartbeat": 1773654996,
-    "otherMachines": 1773654996,
-    "pendingTasks": 1773654996,
-    "healthCheck": 1773654996
+    "heartbeat": 1773685955,
+    "otherMachines": 1773685955,
+    "pendingTasks": 1773685955,
+    "healthCheck": 1773685955
   },
   "lastStatus": {
     "gateway": "running",
-    "wecom": "no config",
     "sessions": 10,
-    "securityWarnings": 1,
-    "testResult": "custom1 API unstable - rate limits strict"
+    "feishu": "waiting_scan",
+    "qr_code": "https://open.feishu.cn/page/openclaw?user_code=6MB2-CW3F"
   }
 }
