@@ -1,0 +1,15 @@
+{
+  "lastChecks": {
+    "heartbeat": 1773654996,
+    "otherMachines": 1773654996,
+    "pendingTasks": 1773654996,
+    "healthCheck": 1773654996
+  },
+  "lastStatus": {
+    "gateway": "running",
+    "wecom": "no config",
+    "sessions": 10,
+    "securityWarnings": 1,
+    "testResult": "custom1 API unstable - rate limits strict"
+  }
+}

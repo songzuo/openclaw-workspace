@@ -1,0 +1,11 @@
+{
+  "lastHeartbeat": "2026-03-16T09:23:00Z",
+  "status": "healthy",
+  "checks": {
+    "openclaw": "running",
+    "gateway": "reachable",
+    "disk": "40% used",
+    "memory": "104GB available"
+  },
+  "notes": "All systems operational"
+}
