@@ -1,1 +1,11 @@
-{"lastHeartbeat": "2026-03-20T20:58:59Z", "status": "healthy", "checks": {"openclaw": "running", "git": "synced", "exec": "recovered from SIGTERM"}, "notes": "Heartbeat check completed"}
+{
+  "lastHeartbeat": "2026-03-20T22:58:00Z",
+  "status": "healthy",
+  "checks": {
+    "openclaw": "running",
+    "git": "synced",
+    "disk": "40% used",
+    "memory": "104GB available"
+  },
+  "notes": "All feishu_im tools registered"
+}
